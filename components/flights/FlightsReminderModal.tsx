@@ -62,7 +62,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
             exit={{ opacity: 0, scale: 0.95, y: 12 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-lg rounded-2xl border border-border bg-navy-800 shadow-2xl"
+              className="relative w-full max-w-lg rounded-2xl border border-border bg-navy-800 shadow-2xl overflow-y-auto h-[80vh] [&::-webkit-scrollbar]:[width:6px] [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:[border-radius:3px]"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-4 border-b border-border px-6 pt-5 pb-4">
@@ -121,7 +121,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
             </div>
 
             {/* Body */}
-            <div className="max-h-[55vh] overflow-y-auto px-6 py-5 text-sm text-slate-300">
+            <div className="max-h-[55vh] [&::-webkit-scrollbar]:[width:6px] [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:[border-radius:3px] overflow-y-auto px-6 py-5 text-sm text-slate-300">
 
               {/* ── DESKTOP ─────────────────────────────────────────────── */}
               {tab === "desktop" && (

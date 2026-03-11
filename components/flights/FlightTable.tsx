@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect, useCallback } from "react";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import type { DbFlight } from "@/lib/db";
-import { useScan } from "@/contexts/ScanContext";
+import { useScan, useScanInternal } from "@/contexts/ScanContext";
 import ScanCountdown from "@/components/dashboard/ScanCountdown";
 import FlightRow from "./FlightRow";
 import FlightsLoadingSkeleton from "./FlightsLoadingSkeleton";
@@ -50,7 +50,10 @@ interface FlightsResponse {
 
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      console.error("API error", url, res.status);
+      throw new Error(`HTTP ${res.status}`);
+    }
     return res.json();
   });
 
@@ -120,6 +123,14 @@ export default function FlightTable({
   const lastUpdateRef = useRef<number>(Date.now());
   const prevIdsRef = useRef<Set<string>>(new Set());
 
+  // Trigger an initial fetch when the scan context initializes or airport changes
+  useEffect(() => {
+    if (!initialAirportIata) return;
+    const key = `/api/flights?airport=${initialAirportIata}`;
+    // call global mutate so FlightTable's SWR instance revalidates
+    globalMutate(key).catch((e) => console.error("mutate failed", e));
+  }, [initialAirportIata]);
+
   // Switch the locked airport only when the global scan boundary fires.
   // ScanContext has already called globalMutate for the new airport at this point,
   // so when the SWR key changes below, SWR deduplicates against the in-flight
@@ -158,6 +169,7 @@ export default function FlightTable({
       },
     }
   );
+
 
   // Seed SWR from localStorage after hydration. Using useEffect (not useMemo)
   // ensures this only runs on the client after the server-rendered HTML has
@@ -235,10 +247,8 @@ export default function FlightTable({
     },
     []
   );
-
   // CHANGED IN STEP 9: Fall back to cityMap for airports not in AIRPORT_NAMES
   const airportName = AIRPORT_NAMES[lockedAirport] ?? cityMap.get(lockedAirport) ?? lockedAirport;
-
   if (!data && !error) return (
     <>
       <FlightsReminderModal open={reminderOpen} onClose={closeReminder} />
