@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "//": "Monitor (scripts/monitor.ts) is NOT deployed to Vercel — must run on Railway/Render/Fly.io as a persistent long-lived process.",
+  "functions": {
+    "app/api/bookings/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/webhooks/stripe/route.ts": {
+      "maxDuration": 10
+    },
+    "app/api/bookings/[bookingId]/cancel/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
