@@ -1,5 +1,17 @@
 import type { DbFlight, FlightStatus } from "./db";
 
+let lastRequestTime = 0;
+const MIN_DELAY_MS = 2000;
+
+async function rateLimit(): Promise<void> {
+  const now = Date.now();
+  const elapsed = now - lastRequestTime;
+  if (elapsed < MIN_DELAY_MS) {
+    await new Promise((resolve) => setTimeout(resolve, MIN_DELAY_MS - elapsed));
+  }
+  lastRequestTime = Date.now();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AeroDataBox raw response types (matches OpenAPI AirportFlightContract)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -190,6 +202,8 @@ async function fetchWindowRaw(
   url.searchParams.set("withCargo", "false");
   url.searchParams.set("withPrivate", "false");
 
+  await rateLimit(); // Rate limit to avoid 429 errors
+
   const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
@@ -216,10 +230,10 @@ export async function getFlightsByAirport(
     throw new Error("AERODATABOX_API_KEY is not set in environment variables");
   }
 
-  // Cover +1 h → +48 h from now, sliced into ≤12 h windows to satisfy the API limit.
+  // Cover now → +48 h from now, sliced into ≤12 h windows to satisfy the API limit.
   const now = new Date();
-  const rangeStart = now.getTime() + 1 * 60 * 60 * 1000;   // +1 h
-  const rangeEnd   = now.getTime() + 48 * 60 * 60 * 1000;  // +48 h
+  const rangeStart = now.getTime();                       // now (was +1 h, fixes missing immediate departures)
+  const rangeEnd   = now.getTime() + 48 * 60 * 60 * 1000; // +48 h
 
   const seen = new Set<string>();
   const results: FlightForUpsert[] = [];

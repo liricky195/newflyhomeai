@@ -61,6 +61,7 @@ export interface DbMonitoredAirport {
   last_scan_at: number | null;
   last_scanned_at: number | null; // written by monitor after each successful poll (migration 013)
   next_scan_at: number | null;    // next scheduled poll time in Unix seconds (migration 013)
+  user_next_scan_at: number | null; // user-specific next scan time (migration 015)
   created_at: number;
   updated_at: number;
 }
@@ -428,6 +429,7 @@ export function initDb(db?: Database.Database): void {
   runMigration(12, "Duffel Links fields", "migrations/012_duffel_links.sql");
   runMigration(13, "Add scan timestamps to monitored_airports", "migrations/013_scan_timestamps.sql");
   runMigration(14, "Add needs_immediate_scan flag", "migrations/014_needs_immediate_scan.sql");
+  runMigration(15, "Add user-specific next_scan_at", "migrations/015_user_specific_next_scan.sql");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -641,7 +643,7 @@ export function updateStripeSubscriptionTier(params: {
   if (userRow) {
     conn
       .prepare<[number, string]>(
-        "UPDATE monitored_airports SET next_scan_at = ? WHERE user_id = ? AND active = 1"
+        "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
       )
       .run(now + interval, userRow.user_id);
   }
@@ -1459,12 +1461,14 @@ export function getAirportScanBuckets(): Array<{
   interval: number;
 }> {
   const conn = getDb();
+  const now = Math.floor(Date.now() / 1000);
   // LEFT JOIN so users with no subscription row (should not occur after createDefaultSubscription,
   // but defensive) are included with COALESCE default of getScanInterval("free").
   // s.status = 'active': cancelled or lapsed subscriptions are not counted.
+  // travel_date_to >= now: skip users whose travel window has already passed.
   return conn
     .prepare<
-      [],
+      [number],
       { airport_iata: string; interval: number }
     >(
       `SELECT ma.airport_iata,
@@ -1472,9 +1476,10 @@ export function getAirportScanBuckets(): Array<{
        FROM monitored_airports ma
        LEFT JOIN subscriptions s ON s.user_id = ma.user_id AND s.status = 'active'
        WHERE ma.active = 1
+         AND (ma.travel_date_to IS NULL OR ma.travel_date_to >= ?)
        GROUP BY ma.airport_iata`
     )
-    .all();
+    .all(now);
 }
 
 /**
@@ -1527,7 +1532,7 @@ export function clearImmediateScanFlag(airportIata: string): void {
 
 /**
  * Records a successful poll for an airport.
- * Sets last_scanned_at = now and next_scan_at = now + intervalSeconds.
+ * Sets last_scanned_at = now and next_scan_at = now + intervalSeconds for all active users.
  * Must only be called on successful poll completion — never on error or timeout.
  */
 export function updateScanTimestamps(airportIata: string, intervalSeconds: number): void {
@@ -1536,7 +1541,7 @@ export function updateScanTimestamps(airportIata: string, intervalSeconds: numbe
   conn
     .prepare<[number, number, string]>(
       `UPDATE monitored_airports
-       SET last_scanned_at = ?, next_scan_at = ?
+       SET last_scanned_at = ?, user_next_scan_at = ?
        WHERE airport_iata = ? AND active = 1`
     )
     .run(now, now + intervalSeconds, airportIata);
@@ -1553,9 +1558,22 @@ export function initNextScanAt(userId: string, intervalSeconds: number): void {
   const now = Math.floor(Date.now() / 1000);
   conn
     .prepare<[number, string]>(
-      "UPDATE monitored_airports SET next_scan_at = ? WHERE user_id = ? AND active = 1"
+      "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
     )
     .run(now + intervalSeconds, userId);
+}
+
+/**
+ * Sets user_next_scan_at for a specific user's active airport row.
+ * Used by the scan-status API when synthesizing a timestamp to ensure it persists.
+ */
+export function setUserNextScanAt(userId: string, nextScanAt: number): void {
+  const conn = getDb();
+  conn
+    .prepare<[number, string]>(
+      "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
+    )
+    .run(nextScanAt, userId);
 }
 
 /**

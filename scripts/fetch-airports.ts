@@ -76,7 +76,7 @@ async function fetchText(url: string): Promise<string> {
 async function main(): Promise<void> {
   console.log(`Fetching airports.dat from OpenFlights...`);
   const raw = await fetchText(SOURCE_URL);
-
+  console.log("Fetched successfly...");
   const lines = raw.split("\n").filter((l) => l.trim().length > 0);
   const airports: AirportEntry[] = [];
 
@@ -90,7 +90,7 @@ async function main(): Promise<void> {
     // Skip rows with no IATA code or non-airport types
     if (!iata || iata === "\\N" || iata === "") continue;
     if (type !== "airport") continue;
-
+    console.log("Done parsing... now pushing");
     airports.push({
       iata: iata.trim(),
       name: cols[1].trim(),
