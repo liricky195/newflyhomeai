@@ -630,6 +630,21 @@ export function updateStripeSubscriptionTier(params: {
       `updateStripeSubscriptionTier: no subscription found with stripe_customer_id ${params.stripe_customer_id}`
     );
   }
+
+  // Reset next_scan_at for the user's active airport so the UI countdown
+  // reflects the new tier immediately after a Stripe checkout payment.
+  const userRow = conn
+    .prepare<[string], { user_id: string }>(
+      "SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?"
+    )
+    .get(params.stripe_customer_id);
+  if (userRow) {
+    conn
+      .prepare<[number, string]>(
+        "UPDATE monitored_airports SET next_scan_at = ? WHERE user_id = ? AND active = 1"
+      )
+      .run(now + interval, userRow.user_id);
+  }
 }
 
 /**
@@ -1525,6 +1540,22 @@ export function updateScanTimestamps(airportIata: string, intervalSeconds: numbe
        WHERE airport_iata = ? AND active = 1`
     )
     .run(now, now + intervalSeconds, airportIata);
+}
+
+/**
+ * Initialises next_scan_at for a specific user's active airport row.
+ * Call this when a user first sets their airport or changes subscription tier,
+ * so the UI countdown starts immediately without waiting for the monitor daemon.
+ * Unlike updateScanTimestamps (which is airport-wide), this is user-scoped.
+ */
+export function initNextScanAt(userId: string, intervalSeconds: number): void {
+  const conn = getDb();
+  const now = Math.floor(Date.now() / 1000);
+  conn
+    .prepare<[number, string]>(
+      "UPDATE monitored_airports SET next_scan_at = ? WHERE user_id = ? AND active = 1"
+    )
+    .run(now + intervalSeconds, userId);
 }
 
 /**
