@@ -5,6 +5,7 @@ import Providers from "@/components/shared/Providers";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { ToastProvider } from "@/components/shared/Toast";
+import ServiceWorkerRegister from "@/components/shared/ServiceWorkerRegister";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -52,6 +53,7 @@ export default function RootLayout({
       <body className="flex min-h-screen flex-col">
         <Providers>
           <ToastProvider>
+            <ServiceWorkerRegister />
             <Navbar />
             <main className="flex-1">{children}</main>
             <Footer />

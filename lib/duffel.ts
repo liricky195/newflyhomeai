@@ -163,7 +163,7 @@ interface CacheEntry extends BookabilityResult {
 const _g = globalThis as typeof globalThis & { _bookabilityCache?: Map<string, CacheEntry> };
 _g._bookabilityCache ??= new Map<string, CacheEntry>();
 const bookabilityCache = _g._bookabilityCache;
-const CACHE_TTL_MS = 5 * 60 * 1000;
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 // ─── API helpers ─────────────────────────────────────────────────────────────
 
