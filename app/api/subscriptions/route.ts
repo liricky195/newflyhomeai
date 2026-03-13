@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import { initDb, getSubscriptionByUserId } from "@/lib/db";
+import { initDb, getSubscriptionByUserId, initNextScanAt } from "@/lib/db";
+import { getScanInterval } from "@/lib/tierIntervals";
 import {
   createSubscriptionCheckout,
   createPortalSession,
@@ -159,6 +160,9 @@ export async function POST(request: NextRequest) {
     if (parsed.data.action === "upgrade") {
       const priceId = getPriceId(parsed.data.tier);
       await upgradeSubscription(sub.stripe_subscription_id, priceId);
+      // Reset the scan countdown to the new tier's interval immediately so the
+      // UI reflects the upgrade without waiting for the next monitor poll.
+      initNextScanAt(session.user.id, getScanInterval(parsed.data.tier));
       const durationMs = Date.now() - startMs;
       logRequest("POST", "/api/subscriptions", 200, durationMs, session.user.id);
       return NextResponse.json({ success: true }, { headers: corsHeaders(origin) });

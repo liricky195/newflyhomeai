@@ -12,6 +12,8 @@ import {
   setUserPersonalDetails,
   getUserPersonalDetails,
   flagAirportForImmediateScan,
+  getSubscriptionByUserId,
+  initNextScanAt,
 } from "@/lib/db";
 import type { UserPersonalDetails } from "@/lib/db";
 
@@ -120,6 +122,9 @@ export async function POST(request: NextRequest) {
       if (previousLastScanAt) {
         setAirportLastScanAt(session.user.id, airport_iata, previousLastScanAt);
       }
+      const sub = getSubscriptionByUserId(session.user.id);
+      const scanInterval = sub?.scan_interval_seconds ?? 1800;
+      initNextScanAt(session.user.id, scanInterval);
 
       // First time this user sets an airport (or re-sets after an admin reset):
       // signal the monitor to scan immediately rather than waiting for the next tick.

@@ -126,19 +126,20 @@ export async function pollAirport(
   try {
     flights = await Promise.race([getFlightsByAirport(airportIata), abortPromise]);
   } catch (err) {
+    console.error(err);
     if (err instanceof Error && err.name === "AbortError") {
+      return;
       // HARDENED IN STEP 10: timeout — skip tick, do not retry, do not crash
       log("warn", "monitor", "AeroDataBox poll timed out", {
         airport: airportIata,
         elapsedMs: Date.now() - startMs,
       });
-      return;
     }
+    return;
     log("error", "monitor", "AeroDataBox poll error", {
       airport: airportIata,
       err: String(err),
     });
-    return;
   } finally {
     clearTimeout(timeout);
   }

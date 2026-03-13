@@ -1,5 +1,18 @@
 const BASE_URL = "https://api.duffel.com";
 
+// Rate limiting: Duffel API has strict rate limits
+let duffelLastRequestTime = 0;
+const DUFFEL_MIN_DELAY_MS = 1000; // 500ms between requests (2 req/sec max)
+
+async function duffelRateLimit(): Promise<void> {
+  const now = Date.now();
+  const elapsed = now - duffelLastRequestTime;
+  if (elapsed < DUFFEL_MIN_DELAY_MS) {
+    await new Promise((resolve) => setTimeout(resolve, DUFFEL_MIN_DELAY_MS - elapsed));
+  }
+  duffelLastRequestTime = Date.now();
+}
+
 function getApiKey(): string {
   // HARDENED IN STEP 10: startup assertion
   const key = process.env.DUFFEL_API_KEY;
@@ -158,6 +171,8 @@ async function duffelFetch<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
+  await duffelRateLimit(); // Rate limit to avoid 429 errors
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: { ...headers(), ...(options.headers as Record<string, string> ?? {}) },
@@ -290,7 +305,7 @@ export async function checkFlightBookable(
   // are allowed through — Duffel accepts them on most routes, and any that are
   // rejected return a 422 handled in the catch block below.
   const today = new Date().toISOString().slice(0, 10);
-  if (departureDate < today) {
+  if (departureDate <= today) {
     return { bookable: false, lowestPriceCents: null, currency: null };
   }
 

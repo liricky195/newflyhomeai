@@ -11,13 +11,14 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  initDb();
+  await initDb();
 
-  if (!isAdmin(session.user.id)) {
+  const isAdminUser = await isAdmin(session.user.id);
+  if (!isAdminUser) {
     redirect("/");
   }
 
-  const stats = getAdminStats();
+  const stats = await getAdminStats();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
