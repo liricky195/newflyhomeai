@@ -196,7 +196,7 @@ export async function createDuffelLink(params: {
 }): Promise<{ id: string; url: string; expiresAt: string }> {
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
-  const res = await duffelFetch<{ data: DuffelLink }>("/links", {
+  const res = await duffelFetch<{ data: DuffelLink }>("/links/sessions", {
     method: "POST",
     body: JSON.stringify({
       data: {
