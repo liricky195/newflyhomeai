@@ -158,7 +158,10 @@ export function mapFlight(
 // Public API
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = "https://aerodatabox.p.rapidapi.com";
+// Trailing slash is required so that new URL('flights/...', BASE_URL) resolves
+// to https://prod.api.market/api/v1/aedbx/aerodatabox/flights/... rather than
+// stripping the last path segment (standard URL resolution behaviour).
+const BASE_URL = "https://prod.api.market/api/v1/aedbx/aerodatabox/";
 
 // AeroDataBox FIDS endpoint enforces a 12-hour max window per call.
 // We split the desired +1 h → +48 h range into four consecutive 12-hour slices.
@@ -179,8 +182,9 @@ async function fetchWindowRaw(
   from: Date,
   to: Date
 ): Promise<RawAeroDataBoxFlight[]> {
+  // No leading slash — keeps the full /api/v1/aedbx/aerodatabox/ base prefix.
   const url = new URL(
-    `/flights/airports/iata/${encodeURIComponent(airportIata)}/${fmtLocal(from)}/${fmtLocal(to)}`,
+    `flights/airports/iata/${encodeURIComponent(airportIata)}/${fmtLocal(from)}/${fmtLocal(to)}`,
     BASE_URL
   );
   url.searchParams.set("direction", "Departure");
@@ -193,8 +197,7 @@ async function fetchWindowRaw(
   const res = await fetch(url.toString(), {
     method: "GET",
     headers: {
-      "X-RapidAPI-Key": apiKey,
-      "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
+      "x-magicapi-key": apiKey,
       Accept: "application/json",
     },
   });

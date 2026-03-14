@@ -3,6 +3,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import type { DbFlight } from "@/lib/db";
+import { getAirportTimezone } from "@/lib/airportTimezone";
+
 function formatCurrency(cents: number, currency: string): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -50,26 +52,23 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
   },
 };
 
-function formatDateTime(unixSeconds: number): string {
+function formatDateTime(unixSeconds: number, airportIata: string): string {
+  const tz = getAirportTimezone(airportIata);
   const d = new Date(unixSeconds * 1000);
-  const today = new Date();
-  const isToday =
-    d.getFullYear() === today.getFullYear() &&
-    d.getMonth() === today.getMonth() &&
-    d.getDate() === today.getDate();
+  const fmt = (opts: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { ...opts, timeZone: tz }).format(d);
 
-  const time = d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const todayStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date());
+  const flightDateStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(d);
 
-  if (isToday) return time;
+  const time = fmt({ hour: "2-digit", minute: "2-digit", hour12: false });
+  if (todayStr === flightDateStr) return time;
 
-  const date = d.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-  });
+  const date = fmt({ day: "numeric", month: "short" });
   return `${date} · ${time}`;
 }
 
@@ -135,7 +134,7 @@ function FlightRow({ flight, isNew, onBook, preferredDest, cityMap }: FlightRowP
       {/* Scheduled Dep. */}
       <td className="hidden px-4 py-3 md:table-cell">
         <span className="font-mono text-sm text-slate-300">
-          {formatDateTime(flight.scheduled_departure)}
+          {formatDateTime(flight.scheduled_departure, flight.departure_airport)}
           {flight.estimated_departure &&
             flight.estimated_departure !== flight.scheduled_departure && (
               <span className="ml-1 text-xs text-amber-400">
@@ -217,7 +216,7 @@ function FlightRow({ flight, isNew, onBook, preferredDest, cityMap }: FlightRowP
             <p className="mt-0.5 text-xs text-slate-400">{flight.airline}</p>
             <div className="mt-2 flex items-center gap-3">
               <span className="font-mono text-sm text-slate-300">
-                {formatDateTime(flight.scheduled_departure)}
+                {formatDateTime(flight.scheduled_departure, flight.departure_airport)}
                 {flight.estimated_departure &&
                   flight.estimated_departure !== flight.scheduled_departure && (
                     <span className="ml-1 text-xs text-amber-400">

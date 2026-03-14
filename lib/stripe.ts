@@ -5,6 +5,7 @@ import {
   resetSubscriptionToFree,
   setCancelAtPeriodEnd,
   linkStripeCustomer,
+  setNextScanAtImmediateByStripeCustomer,
   type SubscriptionTier,
 } from "./db";
 import { getScanInterval } from "./tierIntervals";
@@ -151,6 +152,7 @@ export async function upgradeSubscription(
     stripe_subscription_id: updated.id,
     current_period_end: periodEnd,
   });
+  setNextScanAtImmediateByStripeCustomer(customerId);
 }
 
 export async function downgradeSubscription(
@@ -302,6 +304,7 @@ export async function handleWebhook(
         stripe_subscription_id: subscriptionId ?? null,
         current_period_end: periodEnd,
       });
+      setNextScanAtImmediateByStripeCustomer(customerId);
       break;
     }
 
@@ -323,6 +326,7 @@ export async function handleWebhook(
         stripe_subscription_id: sub.id,
         current_period_end: subPeriodEnd,
       });
+      setNextScanAtImmediateByStripeCustomer(customerId);
       break;
     }
 
@@ -374,6 +378,7 @@ export async function handleWebhook(
         stripe_subscription_id: sub.id,
         current_period_end: periodEnd,
       });
+      setNextScanAtImmediateByStripeCustomer(customerId);
       break;
     }
 

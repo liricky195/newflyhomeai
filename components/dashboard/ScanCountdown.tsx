@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { gmtOffsetLabelForAirport } from "@/lib/airportTimezone";
 
 export interface ScanCountdownProps {
   nextScanAt: number | null;
+  /** IATA code of the departure airport — used to display the correct local timezone label. */
+  airportIata?: string;
 }
 
 /**
@@ -16,23 +19,17 @@ export interface ScanCountdownProps {
  * The container uses fixed tabular-nums monospace font to prevent layout shift
  * when digits change (e.g. "09:59" → "10:00").
  */
-function gmtOffsetLabel(): string {
-  const offsetMins = -new Date().getTimezoneOffset();
-  const h = Math.floor(Math.abs(offsetMins) / 60);
-  const m = Math.abs(offsetMins) % 60;
-  const sign = offsetMins >= 0 ? "+" : "-";
-  return `GMT${sign}${h}${m ? `:${String(m).padStart(2, "0")}` : ""}`;
-}
-
-export default function ScanCountdown({ nextScanAt }: ScanCountdownProps) {
+export default function ScanCountdown({ nextScanAt, airportIata }: ScanCountdownProps) {
   // null = not yet hydrated (SSR state) — renders "Scanning …" to match server
   const [display, setDisplay] = useState<string | null>(null);
   // Empty string on SSR; set on client to avoid hydration mismatch
   const [gmtOffset, setGmtOffset] = useState<string>("");
 
   useEffect(() => {
-    setGmtOffset(gmtOffsetLabel());
-  }, []);
+    if (airportIata) {
+      setGmtOffset(gmtOffsetLabelForAirport(airportIata));
+    }
+  }, [airportIata]);
 
   useEffect(() => {
     const tick = () => {

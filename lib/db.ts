@@ -1500,6 +1500,39 @@ export function getAirportsNeedingImmediateScan(): Array<{
 }
 
 /**
+ * Sets next_scan_at = now + 1 second for the given user's active airport.
+ * Called when the user first sets their airport so the client immediately
+ * receives a non-null nextScanAt and shows a countdown instead of "Scanning…".
+ * The monitor overwrites this value with the real next_scan_at timestamp once
+ * the priority poll completes.
+ */
+export function setNextScanAtImmediate(userId: string): void {
+  getDb()
+    .prepare<[string]>(
+      "UPDATE monitored_airports SET next_scan_at = unixepoch() + 1 WHERE user_id = ? AND active = 1"
+    )
+    .run(userId);
+}
+
+/**
+ * Sets next_scan_at = now + 1 second for the active airport of whichever user
+ * owns the given Stripe customer ID.
+ * Called after a subscription tier change so the client starts a fresh
+ * countdown reflecting the new scan interval without waiting for the monitor's
+ * next regular tick.
+ */
+export function setNextScanAtImmediateByStripeCustomer(stripeCustomerId: string): void {
+  getDb()
+    .prepare<[string]>(`
+      UPDATE monitored_airports
+      SET next_scan_at = unixepoch() + 1
+      WHERE user_id = (SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?)
+        AND active = 1
+    `)
+    .run(stripeCustomerId);
+}
+
+/**
  * Clears needs_immediate_scan for the given airport after the priority poll completes.
  */
 export function clearImmediateScanFlag(airportIata: string): void {

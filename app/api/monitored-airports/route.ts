@@ -12,6 +12,7 @@ import {
   setUserPersonalDetails,
   getUserPersonalDetails,
   flagAirportForImmediateScan,
+  setNextScanAtImmediate,
 } from "@/lib/db";
 import type { UserPersonalDetails } from "@/lib/db";
 
@@ -120,6 +121,12 @@ export async function POST(request: NextRequest) {
       if (previousLastScanAt) {
         setAirportLastScanAt(session.user.id, airport_iata, previousLastScanAt);
       }
+
+      // Give the client an immediate non-null nextScanAt so the countdown
+      // starts at once instead of showing "Scanning…". The monitor will
+      // overwrite this with the real next_scan_at once the priority poll
+      // completes (usually within ~5 s).
+      setNextScanAtImmediate(session.user.id);
 
       // First time this user sets an airport (or re-sets after an admin reset):
       // signal the monitor to scan immediately rather than waiting for the next tick.

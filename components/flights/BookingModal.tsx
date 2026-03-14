@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { getName, getCodes } from "country-list";
 import type { DbFlight } from "@/lib/db";
 import type { DuffelOffer, DuffelOfferConditionDetail, DuffelOfferBaggage } from "@/lib/duffel";
+import { getAirportTimezone, isoToLocalHHMM } from "@/lib/airportTimezone";
 
 // ─── Country combobox data ────────────────────────────────────────────────────
 
@@ -20,14 +21,16 @@ const COUNTRIES: CountryOption[] = (getCodes() as string[])
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatTime(unixSeconds: number): string {
-  return new Date(unixSeconds * 1000).toLocaleString("en-US", {
+function formatTime(unixSeconds: number, airportIata: string): string {
+  const tz = getAirportTimezone(airportIata);
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
     month: "short",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-  });
+  }).format(new Date(unixSeconds * 1000));
 }
 
 export function formatCurrency(amount: string, currency: string): string {
@@ -363,7 +366,7 @@ export default function BookingModal({ flight, onClose }: BookingModalProps) {
               {flight.destination_airport}
             </p>
             <p className="text-xs text-slate-500">
-              Dep. {formatTime(flight.scheduled_departure)} · {flight.airline}
+              Dep. {formatTime(flight.scheduled_departure, flight.departure_airport)} · {flight.airline}
             </p>
           </div>
           {modalState !== "redirecting" && (
@@ -483,27 +486,11 @@ export default function BookingModal({ flight, onClose }: BookingModalProps) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-mono font-medium text-white">
-                              {offer.departure_time &&
-                                new Date(offer.departure_time).toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: false,
-                                  }
-                                )}
+                              {offer.departure_time && isoToLocalHHMM(offer.departure_time)}
                             </span>
                             <span className="text-slate-500">→</span>
                             <span className="font-mono text-white">
-                              {offer.arrival_time &&
-                                new Date(offer.arrival_time).toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: false,
-                                  }
-                                )}
+                              {offer.arrival_time && isoToLocalHHMM(offer.arrival_time)}
                             </span>
                             {offer.duration && (
                               <span className="text-xs text-slate-500">

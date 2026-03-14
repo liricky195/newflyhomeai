@@ -48,6 +48,12 @@ const jsonFetcher = (url: string) =>
     return r.json();
   });
 
+// sessionStorage key used to record the nextScanAt value for which globalMutate
+// was last fired. Persists across ScanProvider remounts within the same browser
+// tab so the same scan boundary cannot trigger /api/flights twice even after a
+// logout/re-login cycle.
+const SCAN_FIRED_KEY = "flyhome_scanFiredAt";
+
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function ScanProvider({ children }: { children: React.ReactNode }) {
@@ -55,19 +61,27 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   const globalMutateRef = useRef(globalMutate);
   globalMutateRef.current = globalMutate;
 
-  const scanFiredRef = useRef(false);
   const [remaining, setRemaining] = useState<number | null>(null);
 
   // Tracks whether nextScanAt was ever in the future during this mount.
-  // Used to distinguish "page loaded while next_scan_at = 0" (should NOT re-trigger)
-  // from "monitor just finished an immediate scan and set next_scan_at = 0" (SHOULD trigger).
+  // Used to distinguish "page loaded while next_scan_at is already past" (should NOT
+  // re-trigger) from "countdown actively reached zero" (SHOULD trigger).
   const hadFutureNextScanAtRef = useRef(false);
 
   // Single scan-status poll shared by all pages.
   const { data: statusData } = useSWR<ScanStatusResponse>(
     "/api/scan-status",
     jsonFetcher,
-    { refreshInterval: 60_000, revalidateOnFocus: false }
+    {
+      refreshInterval: 60_000,
+      revalidateOnFocus: false,
+      // Prevent an immediate fetch on every ScanProvider mount (page load,
+      // re-login, new tab). The 60-second refreshInterval is sufficient to
+      // keep scan-status current; a mount-time fetch adds no value and can
+      // create a race window where the countdown effect re-evaluates with a
+      // freshly-cleared scanFiredRef before the new data arrives.
+      revalidateOnMount: false,
+    }
   );
 
   const airportIata = statusData?.airportIata ?? null;
@@ -76,9 +90,18 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
   // ── Countdown timer driven by server-provided nextScanAt ──────────────────
   // This is the ONLY setInterval driving the scan-boundary trigger.
-  // GET /api/flights is fired when the countdown actively transitions to 0;
-  // it is NOT fired merely because next_scan_at is already 0 on mount (which
-  // would re-trigger on every page reload, logout, or multi-device login).
+  // GET /api/flights is fired when the countdown actively transitions to 0.
+  // Two guards prevent spurious fires:
+  //
+  // 1. hadFutureNextScanAtRef (in-memory, per-mount):
+  //    nextScanAt must have been in the future at some point during this mount.
+  //    This blocks the trigger on page reload / fresh login / new tab where
+  //    next_scan_at is already past before the first tick.
+  //
+  // 2. sessionStorage (persists across ScanProvider remounts within the tab):
+  //    Records the nextScanAt value for which globalMutate was last called.
+  //    Prevents the same scan boundary from firing twice if the user logs out
+  //    and back in before the next /api/scan-status poll returns a fresh value.
   useEffect(() => {
     if (!airportIata) return;
 
@@ -88,17 +111,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     // we know any subsequent 0/past value is a genuine scan completion event.
     if (nextScanAt !== null && nextScanAt > now) {
       hadFutureNextScanAtRef.current = true;
-    }
-
-    // Pre-seed scanFiredRef:
-    // If next_scan_at is already past AND we've never seen a future value this
-    // mount, treat this as a stale timestamp from a previous session — do NOT
-    // re-fire the scan trigger (covers page reload, fresh login, new tab).
-    const isAlreadyPast = nextScanAt !== null && nextScanAt <= now;
-    if (isAlreadyPast && !hadFutureNextScanAtRef.current) {
-      scanFiredRef.current = true;
-    } else {
-      scanFiredRef.current = false;
     }
 
     const tick = () => {
@@ -112,14 +124,19 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
 
       setRemaining(next);
 
-      if (next === 0 && !scanFiredRef.current) {
-        scanFiredRef.current = true;
-        globalMutateRef.current(`/api/flights?airport=${airportIata}`);
-        // Immediately refresh scan-status so nextScanAt updates without
-        // waiting for the 60-second SWR poll cycle.
-        globalMutateRef.current("/api/scan-status");
-      } else if (next !== null && next !== 0) {
-        scanFiredRef.current = false;
+      if (next === 0 && nextScanAt !== null && hadFutureNextScanAtRef.current) {
+        let lastFired = 0;
+        try { lastFired = parseInt(sessionStorage.getItem(SCAN_FIRED_KEY) ?? "0", 10); }
+        catch { /* private browsing / storage unavailable */ }
+
+        if (lastFired !== nextScanAt) {
+          try { sessionStorage.setItem(SCAN_FIRED_KEY, String(nextScanAt)); }
+          catch { /* ignore */ }
+          globalMutateRef.current(`/api/flights?airport=${airportIata}`);
+          // Immediately refresh scan-status so nextScanAt updates without
+          // waiting for the 60-second SWR poll cycle.
+          globalMutateRef.current("/api/scan-status");
+        }
       }
     };
 

@@ -5,7 +5,8 @@ import useSWR, { mutate as globalMutate } from "swr";
 import dynamic from "next/dynamic";
 import { AnimatePresence } from "framer-motion";
 import type { DbFlight } from "@/lib/db";
-import { useScan, useScanInternal } from "@/contexts/ScanContext";
+import { getAirportTimezone } from "@/lib/airportTimezone";
+import { useScan } from "@/contexts/ScanContext";
 import ScanCountdown from "@/components/dashboard/ScanCountdown";
 import FlightRow from "./FlightRow";
 import FlightsLoadingSkeleton from "./FlightsLoadingSkeleton";
@@ -122,13 +123,33 @@ export default function FlightTable({
 
   const lastUpdateRef = useRef<number>(Date.now());
   const prevIdsRef = useRef<Set<string>>(new Set());
+  // Tracks the last airport for which we triggered a bootstrap fetch, so that
+  // remounts of FlightTable (reload, re-login, new tab) with the same airport
+  // do not re-fire the fetch. The localStorage check is the primary guard;
+  // prevAirportRef prevents even the storage look-up when the airport has not
+  // changed within a single React tree lifetime.
+  const prevAirportRef = useRef<string | null>(null);
 
-  // Trigger an initial fetch when the scan context initializes or airport changes
+  // Fire exactly ONE bootstrap fetch per airport, and only when there is no
+  // cached result in localStorage yet (i.e. the user's very first visit for
+  // this airport, or after storage was cleared).
+  //
+  // All subsequent fetches are driven exclusively by ScanContext at the scan
+  // boundary. This effect must NOT run on: page reload, new tab, re-login, or
+  // any other remount where localStorage already holds valid flight data.
   useEffect(() => {
     if (!initialAirportIata) return;
-    const key = `/api/flights?airport=${initialAirportIata}`;
-    // call global mutate so FlightTable's SWR instance revalidates
-    globalMutate(key).catch((e) => console.error("mutate failed", e));
+    if (prevAirportRef.current === initialAirportIata) return;
+    prevAirportRef.current = initialAirportIata;
+
+    const hasCache = (() => {
+      try { return !!localStorage.getItem(`flights:${initialAirportIata}`); }
+      catch { return false; }
+    })();
+
+    if (!hasCache) {
+      globalMutate(`/api/flights?airport=${initialAirportIata}`).catch(() => {});
+    }
   }, [initialAirportIata]);
 
   // Switch the locked airport only when the global scan boundary fires.
@@ -185,21 +206,23 @@ export default function FlightTable({
     } catch { /* ignore */ }
   }, [lockedAirport, mutate]);
 
-  // Clock display — minimal interval just to show the current time in the header.
+  // Clock display — shows current time in the departure airport's local timezone.
   useEffect(() => {
+    const tz = getAirportTimezone(lockedAirport);
     const tick = () =>
       setClock(
-        new Date().toLocaleTimeString("en-US", {
+        new Intl.DateTimeFormat("en-US", {
+          timeZone: tz,
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
           hour12: false,
-        })
+        }).format(new Date())
       );
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [lockedAirport]);
 
   // Track which flight IDs are new since last render
   const newIds = useMemo(() => {
@@ -285,7 +308,7 @@ export default function FlightTable({
               </svg>
               Alerts
             </button>
-            <ScanCountdown nextScanAt={error ? null : (data?.nextScanAt ?? contextNextScanAt)} />
+            <ScanCountdown nextScanAt={error ? null : (data?.nextScanAt ?? contextNextScanAt)} airportIata={lockedAirport} />
             <span className="font-mono text-white">{clock}</span>
           </div>
         </div>
