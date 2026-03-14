@@ -6,7 +6,7 @@
 export const TIER_INTERVALS: Record<string, number> = {
   free: 1800,     // 30 minutes
   standard: 180,  // 3 minutes
-  pro: 60,        // 1 minute
+  pro: 60,        // 60 seconds
   ultimate: 30,   // 30 seconds
 };
 

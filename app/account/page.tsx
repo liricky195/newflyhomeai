@@ -6,6 +6,7 @@ import useSWR from "swr";
 import PageTransition from "@/components/shared/PageTransition";
 import SubscriptionPanel from "@/components/account/SubscriptionPanel";
 import NotificationToggle from "@/components/account/NotificationToggle";
+import DeleteAccountButton from "@/components/account/DeleteAccountButton";
 
 interface AccountData {
   subscription: {
@@ -112,12 +113,15 @@ export default function AccountPage() {
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Session
           </h2>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="min-h-[44px] w-full rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-critical/50 hover:text-critical"
-          >
-            Sign Out
-          </button>
+          <div className="space-y-4">
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="min-h-[44px] w-full rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+            >
+              Sign Out
+            </button>
+            <DeleteAccountButton />
+          </div>
         </section>
       </div>
     </PageTransition>

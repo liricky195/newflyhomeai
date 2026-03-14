@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     purgeStaleFlights(airport);
 
     const flights = getCachedFlights(airport, ["scheduled", "active"]);
-    const nextScanAt = getNextScanAt(airport);
+    const nextScanAt = getNextScanAt(airport, session.user.id);
 
     const durationMs = Date.now() - startMs;
     logRequest("GET", "/api/flights", 200, durationMs, session.user.id);

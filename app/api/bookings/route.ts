@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 6. Create Duffel Link for the booking
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3001";
+  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const successUrl = `${baseUrl}/bookings/confirm?ref=${pendingBooking.internal_reference}`;
   const abandonUrl = `${baseUrl}/flights`;
 
@@ -193,7 +193,6 @@ export async function POST(request: NextRequest) {
       successUrl,
       abandonUrl,
     });
-
     const durationMs = Date.now() - startMs;
     logRequest("POST", "/api/bookings", 200, durationMs, session.user.id);
     return NextResponse.json(
@@ -201,6 +200,7 @@ export async function POST(request: NextRequest) {
       { headers: corsHeaders(origin) }
     );
   } catch (err) {
+    console.log(err);
     try {
       deletePendingBooking(pendingBooking.id);
     } catch (deleteErr) {
@@ -208,6 +208,16 @@ export async function POST(request: NextRequest) {
     }
     const message = err instanceof ApiError ? err.apiMessage : (err as Error).message;
     const durationMs = Date.now() - startMs;
+
+    // Special handling for offer expiry (404 Not Found)
+    if (err instanceof ApiError && err.httpStatus === 404) {
+      logRequest("POST", "/api/bookings", 400, durationMs, session.user.id);
+      return NextResponse.json(
+        { error: "This flight offer has expired. Please go back and select the flight again." },
+        { status: 400, headers: corsHeaders(origin) }
+      );
+    }
+
     logRequest("POST", "/api/bookings", 502, durationMs, session.user.id);
     return NextResponse.json(
       { error: message },

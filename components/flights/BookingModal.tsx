@@ -302,7 +302,6 @@ export default function BookingModal({ flight, onClose }: BookingModalProps) {
             born_on: form.born_on,
             nationality: form.nationality,
             passport_number: form.passport_number,
-            passport_expiry: form.passport_expiry || undefined,
             phone: form.phone || undefined,
           }),
         });
