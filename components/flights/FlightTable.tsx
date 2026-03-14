@@ -81,6 +81,11 @@ export default function FlightTable({
   const REMINDER_KEY = "flyhome_reminder_dismissed_v1";
   const [reminderOpen, setReminderOpen] = useState(false);
 
+  // Filter state for showing/hiding flights without prices
+  const [filter, setFilter] = useState<FilterState>({
+    showWithoutPrice: false,
+  });
+
   // Auto-open on first visit
   useEffect(() => {
     try {
@@ -191,7 +196,6 @@ export default function FlightTable({
     }
   );
 
-
   // Seed SWR from localStorage after hydration. Using useEffect (not useMemo)
   // ensures this only runs on the client after the server-rendered HTML has
   // already been reconciled — preventing the SSR/CSR mismatch that occurs when
@@ -242,7 +246,10 @@ export default function FlightTable({
 
   const sortedData = useMemo(() => {
     if (!data?.flights) return [];
-    return [...data.flights].sort((a, b) => {
+    const filteredFlights = filter.showWithoutPrice
+      ? data.flights.filter((flight) => flight.lowest_price_cents != null && flight.lowest_price_cents > 0)
+      : data.flights;
+    return [...filteredFlights].sort((a, b) => {
       // Priority: direct flights to user's preferred destination always bubble to top
       if (destinationIata) {
         const aMatch = a.destination_airport === destinationIata ? 0 : 1;
@@ -258,7 +265,7 @@ export default function FlightTable({
           : String(av ?? "").localeCompare(String(bv ?? ""));
       return sort.dir === "asc" ? cmp : -cmp;
     });
-  }, [data, sort, destinationIata]);
+  }, [data, sort, destinationIata, filter]);
 
   const handleSort = useCallback(
     (col: SortKey) => {
@@ -304,13 +311,37 @@ export default function FlightTable({
             >
               <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 2a6 6 0 0 0-6 6v3l-1.5 2.5A1 1 0 0 0 3.4 15H16.6a1 1 0 0 0 .9-1.5L16 11V8a6 6 0 0 0-6-6z"/>
-                <path d="M8 15a2 2 0 0 0 4 0"/>
+                <path d="M8 15a2 2 0 0 4 0"/>
               </svg>
               Alerts
             </button>
             <ScanCountdown nextScanAt={error ? null : (data?.nextScanAt ?? contextNextScanAt)} airportIata={lockedAirport} />
             <span className="font-mono text-white">{clock}</span>
           </div>
+        </div>
+
+        {/* Filter toggle */}
+        <div className="flex mb-8  items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-white">Hide flights without prices</p>
+            <p className="text-xs text-slate-400">
+              Only show flights that have pricing information
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={filter.showWithoutPrice}
+            onClick={() => setFilter({ ...filter, showWithoutPrice: !filter.showWithoutPrice })}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+              filter.showWithoutPrice ? "bg-accent" : "bg-navy-600"
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
+                filter.showWithoutPrice ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
         </div>
 
         {/* Error state */}

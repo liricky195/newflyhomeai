@@ -2,6 +2,7 @@ import type { NextAuthOptions, Session, User } from "next-auth";
 import type { AdapterUser } from "next-auth/adapters";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import EmailProvider from "next-auth/providers/email";
 import type { Adapter, AdapterSession, AdapterAccount } from "next-auth/adapters";
 import {
   getDb,
@@ -152,6 +153,36 @@ function sqliteAdapter(): Adapter {
     async deleteSession(sessionToken: string): Promise<void> {
       deleteSession(sessionToken);
     },
+
+    // ─── Verification Tokens (for Email Provider) ───────────────────────────
+    async createVerificationToken(token) {
+      const conn = getDb();
+      conn.prepare(`
+        INSERT INTO verification_tokens (identifier, token, expires)
+        VALUES (?, ?, ?)
+      `).run(token.identifier, token.token, Math.floor(new Date(token.expires).getTime() / 1000));
+      return token;
+    },
+
+    async useVerificationToken({ identifier, token }) {
+      const conn = getDb();
+      const row = conn.prepare(`
+        SELECT identifier, token, expires FROM verification_tokens
+        WHERE identifier = ? AND token = ?
+      `).get(identifier, token) as { identifier: string; token: string; expires: number } | undefined;
+
+      if (!row) return null;
+
+      conn.prepare(`
+        DELETE FROM verification_tokens WHERE identifier = ? AND token = ?
+      `).run(identifier, token);
+
+      return {
+        identifier: row.identifier,
+        token: row.token,
+        expires: new Date(row.expires * 1000),
+      };
+    },
   };
 }
 
@@ -166,6 +197,17 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
       allowDangerousEmailAccountLinking: true,
+    }),
+    EmailProvider({
+      server: {
+        host: process.env.EMAIL_SERVER_HOST,
+        port: Number(process.env.EMAIL_SERVER_PORT),
+        auth: {
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
+        },
+      },
+      from: process.env.EMAIL_FROM,
     }),
   ],
   session: {

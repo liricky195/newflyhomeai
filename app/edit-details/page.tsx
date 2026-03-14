@@ -55,6 +55,8 @@ export default function EditDetailsPage() {
   const [phoneDisplay, setPhoneDisplay] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
+  const [maxPriceUsd, setMaxPriceUsd] = useState<string>("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +105,9 @@ export default function EditDetailsPage() {
           const phone = data.personal.phone ?? "";
           setPhoneDisplay(phone ? formatPhoneDisplay(phone) : "");
         }
+        if (data.airport?.max_price_usd !== undefined) {
+          setMaxPriceUsd(data.airport.max_price_usd?.toString() ?? "");
+        }
       })
       .catch(() => {});
   }, [status]);
@@ -148,6 +153,7 @@ export default function EditDetailsPage() {
     try {
       const body: Record<string, unknown> = {
         destination_iata: destinationIata || null,
+        max_price_usd: maxPriceUsd ? parseInt(maxPriceUsd, 10) : null,
         personal_details: {
           full_name: fullName || null,
           date_of_birth: dob || null,
@@ -230,6 +236,36 @@ export default function EditDetailsPage() {
             onChange={setDestinationIata}
             placeholder="Search city or airport — e.g. London, Heathrow, LHR"
           />
+
+          {/* Max Price Filter */}
+          <div className="border-t border-border pt-6">
+            <h2 className="mb-1 text-lg font-semibold text-white">Notification Filters</h2>
+            <p className="mb-4 text-xs text-slate-500">
+              Only get notified about flights matching these criteria.
+            </p>
+            <div>
+              <label
+                htmlFor="max-price"
+                className="mb-1.5 block text-sm font-medium text-slate-300"
+              >
+                Maximum Price (USD)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                <input
+                  id="max-price"
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={maxPriceUsd}
+                  onChange={(e) => setMaxPriceUsd(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-navy-800 pl-8 pr-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none transition-colors focus:border-accent"
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Leave empty to be notified about all bookable flights.
+              </p>
+            </div>
+          </div>
 
           {/* Personal details section */}
           <div className="border-t border-border pt-6">

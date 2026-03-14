@@ -13,6 +13,8 @@ import {
   getUserPersonalDetails,
   flagAirportForImmediateScan,
   setNextScanAtImmediate,
+  getSubscriptionByUserId,
+  initNextScanAt,
 } from "@/lib/db";
 import type { UserPersonalDetails } from "@/lib/db";
 
@@ -28,6 +30,7 @@ const MonitoredAirportSchema = z
     destination_iata: z.string().length(3).regex(/^[A-Z]{3}$/).optional().nullable(),
     travel_date_from: z.number().int().positive().optional().nullable(),
     travel_date_to: z.number().int().positive().optional().nullable(),
+    max_price_usd: z.number().int().positive().optional().nullable(),
     personal_details: z.record(z.string(), z.unknown()).optional().nullable(),
   })
   .refine(
@@ -60,6 +63,7 @@ export async function GET() {
           travel_date_to: airport.travel_date_to
             ? new Date(airport.travel_date_to * 1000).toISOString().slice(0, 10)
             : null,
+          max_price_usd: airport.max_price_usd ?? null,
         }
       : null,
     personal: personal ?? null,
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { airport_iata, destination_iata, travel_date_from, travel_date_to, personal_details } = parsed.data;
+  const { airport_iata, destination_iata, travel_date_from, travel_date_to, max_price_usd, personal_details } = parsed.data;
 
   try {
     initDb();
@@ -115,12 +119,16 @@ export async function POST(request: NextRequest) {
         travel_date_from: typeof travel_date_from === "number" ? travel_date_from : null,
         travel_date_to: typeof travel_date_to === "number" ? travel_date_to : null,
         active: 1,
+        max_price_usd: max_price_usd ?? null,
       });
       deactivateOtherAirports(session.user.id, airport_iata);
 
       if (previousLastScanAt) {
         setAirportLastScanAt(session.user.id, airport_iata, previousLastScanAt);
       }
+      const sub = getSubscriptionByUserId(session.user.id);
+      const scanInterval = sub?.scan_interval_seconds ?? 1800;
+      initNextScanAt(session.user.id, scanInterval);
 
       // Give the client an immediate non-null nextScanAt so the countdown
       // starts at once instead of showing "Scanning…". The monitor will
@@ -143,7 +151,12 @@ export async function POST(request: NextRequest) {
         travel_date_from: travel_date_from !== undefined ? (typeof travel_date_from === "number" ? travel_date_from : null) : existing.travel_date_from,
         travel_date_to: travel_date_to !== undefined ? (typeof travel_date_to === "number" ? travel_date_to : null) : existing.travel_date_to,
         active: 1,
+        max_price_usd: max_price_usd !== undefined ? (max_price_usd ?? null) : existing.max_price_usd,
       });
+
+      // If user is updating their filters (destination, dates, or price), trigger an immediate scan
+      // to show them the new results without waiting for their tier timer.
+      flagAirportForImmediateScan(session.user.id);
     }
 
     if (personal_details && typeof personal_details === "object") {

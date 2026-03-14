@@ -46,10 +46,10 @@ const TIER_META: Record<
     label: "Pro",
     price: 39.99,
     display: "$39.99/wk",
-    interval: "1-min scans",
+    interval: "60-sec scans",
     features: [
       "Everything in Standard",
-      "1-minute scan interval",
+      "60-second scan interval",
       "Priority flight matching",
       "Instant booking",
     ],
@@ -57,8 +57,8 @@ const TIER_META: Record<
   },
   ultimate: {
     label: "Ultimate",
-    price: 69.99,
-    display: "$69.99/wk",
+    price: 99.99,
+    display: "$99.99/wk",
     interval: "30-sec scans",
     features: [
       "Everything in Pro",
@@ -73,7 +73,7 @@ const TIER_PRICE_DISPLAY: Record<SubscriptionTier, string> = {
   free: "$0",
   standard: "$19.99/wk",
   pro: "$39.99/wk",
-  ultimate: "$69.99/wk",
+  ultimate: "$99.99/wk",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

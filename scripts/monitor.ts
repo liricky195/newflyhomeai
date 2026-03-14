@@ -87,7 +87,21 @@ export async function notifyUsersOfNewFlight(
       ? `${flight.airline} ${flight.flight_number} ${airportIata} → ${flight.destination_airport} (${flight.status})`
       : `${flight.flight_number} is now ${flight.status}`;
 
-  for (const { user_id } of users) {
+  for (const { user_id, max_price_usd } of users) {
+    // If flight has a price and user has a max price filter, check it
+    if (flight.lowest_price_cents != null && max_price_usd !== null) {
+      const flightPriceUsd = flight.lowest_price_cents / 100;
+      if (flightPriceUsd > max_price_usd) {
+        log("debug", "monitor", `Skipping notification for user ${user_id}: flight price ${flightPriceUsd} USD > max price ${max_price_usd} USD`, {
+          user_id,
+          flight_id: flight.id,
+          price: flightPriceUsd,
+          max_price: max_price_usd
+        });
+        continue;
+      }
+    }
+
     await sendPushNotification(user_id, { title, body });
 
     createNotification({
@@ -126,19 +140,20 @@ export async function pollAirport(
   try {
     flights = await Promise.race([getFlightsByAirport(airportIata), abortPromise]);
   } catch (err) {
+    console.error(err);
     if (err instanceof Error && err.name === "AbortError") {
+      return;
       // HARDENED IN STEP 10: timeout — skip tick, do not retry, do not crash
       log("warn", "monitor", "AeroDataBox poll timed out", {
         airport: airportIata,
         elapsedMs: Date.now() - startMs,
       });
-      return;
     }
+    return;
     log("error", "monitor", "AeroDataBox poll error", {
       airport: airportIata,
       err: String(err),
     });
-    return;
   } finally {
     clearTimeout(timeout);
   }
@@ -411,7 +426,7 @@ export function main(): void {
 
   const immediateId = setInterval(
     () => { runImmediateScans().catch((err) => log("error", "monitor", "runImmediateScans error", { err: String(err) })); },
-    5000
+    10000
   );
   activeIntervals.push(immediateId);
 
@@ -446,30 +461,8 @@ export function main(): void {
     }
   });
 
-  // Hourly AeroDataBox time refresh — ensures estimated_departure stays current
-  const allAirports = buckets.map((b) => b.airport_iata);
-  const hourlyRefresh = async () => {
-    for (const iata of allAirports) {
-      try {
-        const fresh = await getFlightsByAirport(iata);
-        purgeStaleFlights(iata);
-        for (const flight of fresh) {
-          upsertFlight(flight);
-        }
-        log("info", "monitor", `[hourly-refresh] ${iata}: ${fresh.length} flights refreshed`, {
-          airport: iata,
-          count: fresh.length,
-        });
-      } catch (err) {
-        log("error", "monitor", `[hourly-refresh] ${iata} error`, {
-          airport: iata,
-          err: String(err),
-        });
-      }
-    }
-  };
-  const hourlyId = setInterval(hourlyRefresh, 60 * 60 * 1000);
-  activeIntervals.push(hourlyId);
+  // Hourly AeroDataBox time refresh — REMOVED: excessive API calls
+  // The regular scan intervals already keep flight data current
 
   // Purge stale pending bookings every 30 minutes
   purgeStalePendingBookings();

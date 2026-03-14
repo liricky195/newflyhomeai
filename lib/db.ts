@@ -58,9 +58,11 @@ export interface DbMonitoredAirport {
   travel_date_from: number | null;
   travel_date_to: number | null;
   active: 0 | 1;
+  max_price_usd: number | null;
   last_scan_at: number | null;
   last_scanned_at: number | null; // written by monitor after each successful poll (migration 013)
   next_scan_at: number | null;    // next scheduled poll time in Unix seconds (migration 013)
+  user_next_scan_at: number | null; // user-specific next scan time (migration 015)
   created_at: number;
   updated_at: number;
 }
@@ -273,6 +275,14 @@ export function initDb(db?: Database.Database): void {
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 
+    -- ── Verification tokens ──────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS verification_tokens (
+      identifier TEXT    NOT NULL,
+      token      TEXT    NOT NULL,
+      expires    INTEGER NOT NULL,
+      PRIMARY KEY (identifier, token)
+    );
+
     -- ── Subscriptions ──────────────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS subscriptions (
       id                     TEXT    NOT NULL PRIMARY KEY,
@@ -283,7 +293,7 @@ export function initDb(db?: Database.Database): void {
                                CHECK (tier IN ('free','standard','pro','ultimate')),
       status                 TEXT    NOT NULL DEFAULT 'active'
                                CHECK (status IN ('active','canceled','past_due','trialing')),
-      scan_interval_seconds  INTEGER NOT NULL DEFAULT 1800,
+      scan_interval_seconds  INTEGER NOT NULL,
       current_period_end     INTEGER,
       created_at             INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at             INTEGER NOT NULL DEFAULT (unixepoch())
@@ -300,6 +310,7 @@ export function initDb(db?: Database.Database): void {
       travel_date_from INTEGER,
       travel_date_to   INTEGER,
       active           INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+      max_price_usd    INTEGER,
       created_at       INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at       INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE (user_id, airport_iata)
@@ -428,6 +439,8 @@ export function initDb(db?: Database.Database): void {
   runMigration(12, "Duffel Links fields", "migrations/012_duffel_links.sql");
   runMigration(13, "Add scan timestamps to monitored_airports", "migrations/013_scan_timestamps.sql");
   runMigration(14, "Add needs_immediate_scan flag", "migrations/014_needs_immediate_scan.sql");
+  runMigration(15, "Add user-specific next_scan_at", "migrations/015_user_specific_next_scan.sql");
+  runMigration(16, "Add max_price_usd to monitored_airports", "migrations/016_add_max_price_usd.sql");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -479,6 +492,17 @@ export function getUserById(id: string): DbUser | null {
   );
 }
 
+export function getUserByStripeCustomerId(stripeCustomerId: string): DbUser | null {
+  const conn = getDb();
+  return (
+    conn
+      .prepare<[string], DbUser>(
+        "SELECT u.* FROM users u JOIN subscriptions s ON s.user_id = u.id WHERE s.stripe_customer_id = ?"
+      )
+      .get(stripeCustomerId) ?? null
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sessions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -517,6 +541,19 @@ export function deleteSession(token: string): void {
   conn
     .prepare<[string]>("DELETE FROM sessions WHERE session_token = ?")
     .run(token);
+}
+
+export function deleteUser(userId: string): void {
+  const conn = getDb();
+  // FOREIGN KEY constraints with ON DELETE CASCADE will handle:
+  // - monitored_airports
+  // - subscriptions
+  // - push_subscriptions
+  // - sessions
+  // - notifications
+  // - logs (if linked)
+  // Bookings are also linked and should be deleted if they exist.
+  conn.prepare<[string]>("DELETE FROM users WHERE id = ?").run(userId);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -630,6 +667,21 @@ export function updateStripeSubscriptionTier(params: {
       `updateStripeSubscriptionTier: no subscription found with stripe_customer_id ${params.stripe_customer_id}`
     );
   }
+
+  // Reset next_scan_at for the user's active airport so the UI countdown
+  // reflects the new tier immediately after a Stripe checkout payment.
+  const userRow = conn
+    .prepare<[string], { user_id: string }>(
+      "SELECT user_id FROM subscriptions WHERE stripe_customer_id = ?"
+    )
+    .get(params.stripe_customer_id);
+  if (userRow) {
+    conn
+      .prepare<[number, string]>(
+        "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
+      )
+      .run(now + interval, userRow.user_id);
+  }
 }
 
 /**
@@ -721,20 +773,22 @@ export function setMonitoredAirport(params: {
   travel_date_from?: number | null;
   travel_date_to?: number | null;
   active?: 0 | 1;
+  max_price_usd?: number | null;
 }): DbMonitoredAirport {
   const conn = getDb();
   const now = Math.floor(Date.now() / 1000);
   const active = params.active ?? 1;
 
-  const stmt = conn.prepare<[string, string, string, string | null, number | null, number | null, number, number, number]>(`
+  const stmt = conn.prepare<[string, string, string, string | null, number | null, number | null, number, number | null, number, number]>(`
     INSERT INTO monitored_airports
-      (id, user_id, airport_iata, destination_iata, travel_date_from, travel_date_to, active, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, user_id, airport_iata, destination_iata, travel_date_from, travel_date_to, active, max_price_usd, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(user_id, airport_iata) DO UPDATE SET
       destination_iata = excluded.destination_iata,
       travel_date_from = excluded.travel_date_from,
       travel_date_to   = excluded.travel_date_to,
       active           = excluded.active,
+      max_price_usd    = excluded.max_price_usd,
       updated_at       = excluded.updated_at
   `);
 
@@ -747,6 +801,7 @@ export function setMonitoredAirport(params: {
       params.travel_date_from ?? null,
       params.travel_date_to ?? null,
       active,
+      params.max_price_usd ?? null,
       now,
       now
     );
@@ -944,8 +999,7 @@ export function getFlightsByAirport(
   const sql =
     "SELECT * FROM flights" +
     " WHERE departure_airport = ? AND status IN (" + inClause + ")" +
-    " AND bookable = 1" +
-    " AND lowest_price_cents IS NOT NULL" +
+    " AND (bookable = 1 OR lowest_price_cents IS NULL OR bookable = 0)" +
     " AND scheduled_departure >= unixepoch()" +
     " ORDER BY scheduled_departure ASC";
   const rows = conn
@@ -1444,12 +1498,14 @@ export function getAirportScanBuckets(): Array<{
   interval: number;
 }> {
   const conn = getDb();
+  const now = Math.floor(Date.now() / 1000);
   // LEFT JOIN so users with no subscription row (should not occur after createDefaultSubscription,
   // but defensive) are included with COALESCE default of getScanInterval("free").
   // s.status = 'active': cancelled or lapsed subscriptions are not counted.
+  // travel_date_to >= now: skip users whose travel window has already passed.
   return conn
     .prepare<
-      [],
+      [number],
       { airport_iata: string; interval: number }
     >(
       `SELECT ma.airport_iata,
@@ -1457,9 +1513,10 @@ export function getAirportScanBuckets(): Array<{
        FROM monitored_airports ma
        LEFT JOIN subscriptions s ON s.user_id = ma.user_id AND s.status = 'active'
        WHERE ma.active = 1
+         AND (ma.travel_date_to IS NULL OR ma.travel_date_to >= ?)
        GROUP BY ma.airport_iata`
     )
-    .all();
+    .all(now);
 }
 
 /**
@@ -1545,7 +1602,7 @@ export function clearImmediateScanFlag(airportIata: string): void {
 
 /**
  * Records a successful poll for an airport.
- * Sets last_scanned_at = now and next_scan_at = now + intervalSeconds.
+ * Sets last_scanned_at = now and next_scan_at = now + intervalSeconds for all active users.
  * Must only be called on successful poll completion — never on error or timeout.
  */
 export function updateScanTimestamps(airportIata: string, intervalSeconds: number): void {
@@ -1554,33 +1611,70 @@ export function updateScanTimestamps(airportIata: string, intervalSeconds: numbe
   conn
     .prepare<[number, number, string]>(
       `UPDATE monitored_airports
-       SET last_scanned_at = ?, next_scan_at = ?
+       SET last_scanned_at = ?, user_next_scan_at = ?
        WHERE airport_iata = ? AND active = 1`
     )
     .run(now, now + intervalSeconds, airportIata);
 }
 
 /**
+ * Initialises next_scan_at for a specific user's active airport row.
+ * Call this when a user first sets their airport or changes subscription tier,
+ * so the UI countdown starts immediately without waiting for the monitor daemon.
+ * Unlike updateScanTimestamps (which is airport-wide), this is user-scoped.
+ */
+export function initNextScanAt(userId: string, intervalSeconds: number): void {
+  const conn = getDb();
+  const now = Math.floor(Date.now() / 1000);
+  conn
+    .prepare<[number, string]>(
+      "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
+    )
+    .run(now + intervalSeconds, userId);
+}
+
+/**
+ * Sets user_next_scan_at for a specific user's active airport row.
+ * Used by the scan-status API when synthesizing a timestamp to ensure it persists.
+ */
+export function setUserNextScanAt(userId: string, nextScanAt: number): void {
+  const conn = getDb();
+  conn
+    .prepare<[number, string]>(
+      "UPDATE monitored_airports SET user_next_scan_at = ? WHERE user_id = ? AND active = 1"
+    )
+    .run(nextScanAt, userId);
+}
+
+/**
  * Returns the next_scan_at Unix timestamp for the given airport, or null if not set.
  * Used by GET /api/flights to return nextScanAt to the client.
  */
-export function getNextScanAt(airportIata: string): number | null {
+export function getNextScanAt(airportIata: string, userId?: string): number | null {
   const conn = getDb();
+  if (userId) {
+    const row = conn
+      .prepare<[string, string], { user_next_scan_at: number | null }>(
+        "SELECT user_next_scan_at FROM monitored_airports WHERE airport_iata = ? AND user_id = ? AND active = 1 LIMIT 1"
+      )
+      .get(airportIata, userId);
+    return row?.user_next_scan_at ?? null;
+  }
   const row = conn
-    .prepare<[string], { next_scan_at: number | null }>(
-      "SELECT next_scan_at FROM monitored_airports WHERE airport_iata = ? AND active = 1 LIMIT 1"
+    .prepare<[string], { user_next_scan_at: number | null }>(
+      "SELECT user_next_scan_at FROM monitored_airports WHERE airport_iata = ? AND active = 1 ORDER BY user_next_scan_at ASC LIMIT 1"
     )
     .get(airportIata);
-  return row?.next_scan_at ?? null;
+  return row?.user_next_scan_at ?? null;
 }
 
 export function getActiveUsersForAirport(
   airportIata: string
-): Array<{ user_id: string }> {
+): Array<{ user_id: string; max_price_usd: number | null }> {
   const conn = getDb();
   return conn
-    .prepare<[string], { user_id: string }>(
-      "SELECT DISTINCT user_id FROM monitored_airports WHERE airport_iata = ? AND active = 1"
+    .prepare<[string], { user_id: string; max_price_usd: number | null }>(
+      "SELECT DISTINCT user_id, max_price_usd FROM monitored_airports WHERE airport_iata = ? AND active = 1"
     )
     .all(airportIata);
 }
