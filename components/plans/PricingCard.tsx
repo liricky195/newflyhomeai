@@ -53,8 +53,8 @@ const TIER_META: Record<
   },
   ultimate: {
     label: "Ultimate",
-    price: 99.99,
-    display: "$99.99/wk",
+    price: 69.99,
+    display: "$69.99/wk",
     interval: "30-sec scans",
     features: [
       "Everything in Pro",
@@ -68,7 +68,7 @@ const TIER_PRICE_DISPLAY: Record<SubscriptionTier, string> = {
   free: "$0",
   standard: "$19.99/wk",
   pro: "$39.99/wk",
-  ultimate: "$99.99/wk",
+  ultimate: "$69.99/wk",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
