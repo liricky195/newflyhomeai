@@ -13,14 +13,6 @@ export default defineConfig({
     ],
     globals: true,
     setupFiles: ["__tests__/setup-dom.ts"],
-    poolOptions: {
-      threads: {
-        // Increase worker thread heap size to prevent OOM in complex component tests
-        workerResourceLimits: {
-          maxOldGenerationSizeMb: 4096,
-        },
-      },
-    },
     coverage: {
       provider: "v8",
       // Only measure coverage for backend logic — not NextAuth config, UI components,
