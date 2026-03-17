@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 
 // ─── GET /api/bookings ────────────────────────────────────────────────────────
 
-export async function GET(request?: NextRequest) {
+export async function GET(request: NextRequest) {
   const startMs = Date.now();
   const origin = request?.headers?.get("origin") ?? null;
 
