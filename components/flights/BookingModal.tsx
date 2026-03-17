@@ -187,7 +187,7 @@ export default function BookingModal({ flight, onClose }: BookingModalProps) {
                   Book this flight on Google Flights
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  You'll be redirected to Google Flights to complete your booking
+                  You&apos;ll be redirected to Google Flights to complete your booking
                 </p>
               </div>
 

@@ -158,7 +158,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
                       <>Click <Chip>Battery</Chip> in the left sidebar, then
                         click <Chip>Options</Chip>.</>,
                       <>Turn on <Chip>Prevent automatic sleeping when the
-                        display is off</Chip>. If you don't see this, look for{" "}
+                        display is off</Chip>. If you don&apos;t see this, look for{" "}
                         <Chip>Energy Saver</Chip> instead and enable the same
                         option there.</>,
                     ]} />
@@ -206,7 +206,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
                         notifications. Tap <Chip>Allow</Chip>.</>,
                     ]} />
                     <Note>
-                      If you accidentally tapped "Don't Allow", go to your
+                      If you accidentally tapped &ldquo;Don&apos;t Allow&rdquo;, go to your
                       iPhone <strong className="text-white">Settings → Notifications</strong>,
                       scroll down to find <strong className="text-white">flyhome.ai</strong>,
                       and turn on <strong className="text-white">Allow Notifications</strong>.
@@ -231,7 +231,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
                     ]} />
                     <Note>
                       Once added to the Home Screen, flyhome.ai will open in
-                      Safari (Apple requires this on iPhone) — that's normal and
+                      Safari (Apple requires this on iPhone) — that&apos;s normal and
                       is needed for notifications to work.
                     </Note>
                   </Section>
@@ -281,7 +281,7 @@ export default function FlightsReminderModal({ open, onClose }: Props) {
                         <Chip>Allow</Chip> when asked about notifications.</>,
                     ]} />
                     <Note>
-                      If notifications were denied, go to your phone's{" "}
+                      If notifications were denied, go to your phone&apos;s{" "}
                       <strong className="text-white">Settings → Apps → Samsung Internet → Notifications</strong>{" "}
                       and turn on <strong className="text-white">Allow notifications</strong>.
                     </Note>
