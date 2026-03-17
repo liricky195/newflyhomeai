@@ -22,11 +22,11 @@ const TIER_META: Record<
     label: "Free",
     price: 0,
     display: "$0",
-    interval: "30-min scans",
+    interval: "10-min scans",
     features: [
       "Flight status alerts",
       "1 monitored airport",
-      "30-minute scan interval",
+      "10-minute scan interval",
       "Push notifications",
     ],
   },
@@ -38,8 +38,6 @@ const TIER_META: Record<
     features: [
       "Everything in Free",
       "3-minute scan interval",
-      "Email notifications",
-      "Booking via Duffel",
     ],
   },
   pro: {
@@ -50,8 +48,6 @@ const TIER_META: Record<
     features: [
       "Everything in Standard",
       "60-second scan interval",
-      "Priority flight matching",
-      "Instant booking",
     ],
     recommended: true,
   },
@@ -64,7 +60,6 @@ const TIER_META: Record<
       "Everything in Pro",
       "30-second scan interval",
       "Dedicated scan queue",
-      "SLA response guarantee",
     ],
   },
 };

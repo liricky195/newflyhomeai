@@ -58,7 +58,7 @@ export default function DashboardPage() {
         {data.subscription.tier === "free" && (
           <div className="mb-6 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3">
             <p className="text-sm text-accent">
-              You are on the Free plan (30-minute scans).{" "}
+              You are on the Free plan (10-minute scans).{" "}
               <Link href="/plans" className="font-medium underline underline-offset-2">
                 Upgrade for faster monitoring
               </Link>
