@@ -238,6 +238,9 @@ export function initDb(db?: Database.Database): void {
   // HARDENED IN STEP 10: startup assertion — fail fast when DATABASE_URL is absent
   // and no in-memory DB has been injected via setDb() or the db parameter.
   if (!db && !_db && !process.env.DATABASE_URL) {
+    // During Next.js production build, skip DB initialization — the database
+    // is only needed at runtime, not during static page-data collection.
+    if (process.env.NEXT_PHASE === "phase-production-build") return;
     throw new Error(
       "DATABASE_URL is required. Set it to the path of your SQLite file (e.g. ./data/flyhome.db)."
     );
