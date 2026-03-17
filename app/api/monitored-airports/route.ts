@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { revalidatePath } from "next/cache";
 import { authOptions } from "@/lib/auth";
+import { initDb, getMonitoredAirport, setMonitoredAirport, setAirportLastScanAt, getSubscriptionByUserId, initNextScanAt, deactivateOtherAirports, setUserPersonalDetails, getUserPersonalDetails, flagAirportForImmediateScan, setNextScanAtImmediate } from "@/lib/db";
+import { getScanInterval } from "@/lib/tierIntervals";
 import { z } from "zod";
-import {
-  initDb,
-  setMonitoredAirport,
-  deactivateOtherAirports,
-  setAirportLastScanAt,
-  getMonitoredAirport,
-  setUserPersonalDetails,
-  getUserPersonalDetails,
-  flagAirportForImmediateScan,
-  setNextScanAtImmediate,
-  getSubscriptionByUserId,
-  initNextScanAt,
-} from "@/lib/db";
+import { revalidatePath } from "next/cache";
 import type { UserPersonalDetails } from "@/lib/db";
 
 function toUnix(dateStr: string | null | undefined): number | null {
@@ -127,7 +116,7 @@ export async function POST(request: NextRequest) {
         setAirportLastScanAt(session.user.id, airport_iata, previousLastScanAt);
       }
       const sub = getSubscriptionByUserId(session.user.id);
-      const scanInterval = sub?.scan_interval_seconds ?? 1800;
+      const scanInterval = sub?.scan_interval_seconds ?? getScanInterval("free");
       initNextScanAt(session.user.id, scanInterval);
 
       // Give the client an immediate non-null nextScanAt so the countdown

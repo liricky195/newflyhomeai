@@ -703,14 +703,14 @@ export function linkStripeCustomer(userId: string, stripeCustomerId: string): vo
  * Derives scan_interval_seconds automatically from tier via getScanInterval.
  * Caller must NOT pass scan_interval_seconds — it is always computed here.
  * Unknown tiers are normalised to 'free' (safe default) for the DB column,
- * while getScanInterval's fallback ensures scan_interval_seconds is also 1800.
+ * while getScanInterval's fallback ensures scan_interval_seconds is also 600.
  */
 export function updateSubscriptionTier(userId: string, tier: string): void {
   const conn = getDb();
   const now = Math.floor(Date.now() / 1000);
   const validTiers = new Set<string>(["free", "standard", "pro", "ultimate"]);
   const normalizedTier = validTiers.has(tier) ? tier : "free";
-  const interval = getScanInterval(tier); // getScanInterval handles unknown → 1800
+  const interval = getScanInterval(tier); // getScanInterval handles unknown → 600
 
   conn.prepare<[string, number, number, string]>(`
     UPDATE subscriptions
@@ -1706,7 +1706,7 @@ export function getUsersByPage(
       u.role,
       u.created_at,
       COALESCE(s.tier, 'free') AS tier,
-      COALESCE(s.scan_interval_seconds, 1800) AS scan_interval_seconds,
+      COALESCE(s.scan_interval_seconds, 600) AS scan_interval_seconds,
       ma.airport_iata
     FROM users u
     LEFT JOIN subscriptions s ON s.user_id = u.id AND s.status = 'active'

@@ -16,6 +16,15 @@ import FlightsReminderModal from "./FlightsReminderModal";
 // Loading it client-side only prevents the hydration hooks-count mismatch.
 const BookingModal = dynamic(() => import("./BookingModal"), { ssr: false });
 
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) {
+      console.error("API error", url, res.status);
+      throw new Error(`HTTP ${res.status}`);
+    }
+    return res.json();
+  });
+
 const AIRPORT_NAMES: Record<string, string> = {
   DXB: "Dubai International",
   AUH: "Abu Dhabi International",
@@ -44,19 +53,15 @@ interface SortState {
   dir: "asc" | "desc";
 }
 
+interface FilterState {
+  showWithoutPrice: boolean;
+  enableMaxPrice: boolean;
+}
+
 interface FlightsResponse {
   flights: DbFlight[];
   nextScanAt: number | null;
 }
-
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) {
-      console.error("API error", url, res.status);
-      throw new Error(`HTTP ${res.status}`);
-    }
-    return res.json();
-  });
 
 function ChevronIcon({ dir }: { dir: "asc" | "desc" | null }) {
   if (!dir) return <span className="ml-1 text-slate-600">↕</span>;
@@ -78,12 +83,16 @@ export default function FlightTable({
   // globalMutate fires at the scan boundary to revalidate the flights SWR key.
   const { remaining, airportIata: contextAirportIata, scanIntervalSeconds, nextScanAt: contextNextScanAt } = useScan();
 
+  // Fetch user's monitored airports to get max_price_usd
+  const { data: monitoredData } = useSWR("/api/monitored-airports", fetcher, { revalidateOnFocus: false });
+
   const REMINDER_KEY = "flyhome_reminder_dismissed_v1";
   const [reminderOpen, setReminderOpen] = useState(false);
 
-  // Filter state for showing/hiding flights without prices
+  // Filter state for showing/hiding flights without prices and max price
   const [filter, setFilter] = useState<FilterState>({
     showWithoutPrice: false,
+    enableMaxPrice: false,
   });
 
   // Auto-open on first visit
@@ -182,19 +191,30 @@ export default function FlightTable({
     `/api/flights?airport=${lockedAirport}`,
     fetcher,
     {
-      revalidateOnMount: false,
-      refreshInterval: 0,
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 30_000,
-      onSuccess: (newData) => {
-        lastUpdateRef.current = Date.now();
-        try {
-          localStorage.setItem(`flights:${lockedAirport}`, JSON.stringify(newData));
-        } catch { /* storage quota or private-browsing — degrade gracefully */ }
-      },
+      refreshInterval: 0, // Disable automatic polling
+      revalidateOnFocus: false,  // Tab switch must NOT trigger a refetch.
+      revalidateOnReconnect: false, // Reconnect must NOT trigger a refetch.
+      dedupingInterval: 30_000,  // Prevents duplicate requests within 30 s.
     }
   );
+
+  const getNextScanAt = () => {
+    if (error) return null;
+    
+    const dataNextScanAt = data?.nextScanAt;
+    const contextNext = contextNextScanAt;
+    const now = Math.floor(Date.now() / 1000);
+    
+    // If data timestamp is in the past or invalid, use context timestamp
+    if (!dataNextScanAt || dataNextScanAt <= now) {
+      return contextNext;
+    }
+    
+    // Otherwise use data timestamp
+    return dataNextScanAt;
+  };
+
+  const nextScanAtValue = getNextScanAt();
 
   // Seed SWR from localStorage after hydration. Using useEffect (not useMemo)
   // ensures this only runs on the client after the server-rendered HTML has
@@ -246,9 +266,22 @@ export default function FlightTable({
 
   const sortedData = useMemo(() => {
     if (!data?.flights) return [];
-    const filteredFlights = filter.showWithoutPrice
-      ? data.flights.filter((flight) => flight.lowest_price_cents != null && flight.lowest_price_cents > 0)
-      : data.flights;
+    
+    let filteredFlights = data.flights;
+    
+    // Apply showWithoutPrice filter
+    if (filter.showWithoutPrice) {
+      filteredFlights = filteredFlights.filter((flight) => flight.lowest_price_cents != null && flight.lowest_price_cents > 0);
+    }
+    
+    // Apply max price filter
+    if (filter.enableMaxPrice && monitoredData?.airport?.max_price_usd) {
+      const maxPriceCents = monitoredData.airport.max_price_usd * 100;
+      filteredFlights = filteredFlights.filter((flight) => 
+        flight.lowest_price_cents != null && flight.lowest_price_cents <= maxPriceCents
+      );
+    }
+    
     return [...filteredFlights].sort((a, b) => {
       // Priority: direct flights to user's preferred destination always bubble to top
       if (destinationIata) {
@@ -265,7 +298,7 @@ export default function FlightTable({
           : String(av ?? "").localeCompare(String(bv ?? ""));
       return sort.dir === "asc" ? cmp : -cmp;
     });
-  }, [data, sort, destinationIata, filter]);
+  }, [data, sort, destinationIata, filter, monitoredData]);
 
   const handleSort = useCallback(
     (col: SortKey) => {
@@ -315,7 +348,10 @@ export default function FlightTable({
               </svg>
               Alerts
             </button>
-            <ScanCountdown nextScanAt={error ? null : (data?.nextScanAt ?? contextNextScanAt)} airportIata={lockedAirport} />
+            <ScanCountdown 
+              nextScanAt={nextScanAtValue} 
+              airportIata={lockedAirport} 
+            />
             <span className="font-mono text-white">{clock}</span>
           </div>
         </div>
@@ -339,6 +375,44 @@ export default function FlightTable({
             <span
               className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
                 filter.showWithoutPrice ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Max price filter toggle */}
+        <div className="flex mb-8  items-center justify-between gap-4">
+          <div>
+            <p className={monitoredData?.airport?.max_price_usd ? "text-sm font-medium text-white" : "text-sm font-medium text-white opacity-50"}>
+              Show flights below my max price
+            </p>
+            <p className={"text-xs text-slate-400"}>
+              {monitoredData?.airport?.max_price_usd 
+                ? `Only show flights below $${monitoredData.airport.max_price_usd}`
+                : "Set a max price in your settings to enable this filter"
+              }
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={filter.enableMaxPrice}
+            onClick={() => setFilter({ ...filter, enableMaxPrice: !filter.enableMaxPrice })}
+            disabled={!monitoredData?.airport?.max_price_usd}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+              filter.enableMaxPrice && monitoredData?.airport?.max_price_usd
+                ? "bg-accent" 
+                : "bg-navy-600"
+            } ${
+              !monitoredData?.airport?.max_price_usd
+                ? "cursor-not-allowed opacity-50"
+                : ""
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
+                filter.enableMaxPrice && monitoredData?.airport?.max_price_usd
+                  ? "translate-x-5" 
+                  : "translate-x-0"
               }`}
             />
           </button>

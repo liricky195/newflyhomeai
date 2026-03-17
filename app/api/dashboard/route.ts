@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { initDb, getMonitoredAirport, getSubscriptionByUserId, getNotificationsByUserId } from "@/lib/db";
+import { getScanInterval } from "@/lib/tierIntervals";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -30,7 +31,7 @@ export async function GET() {
     },
     subscription: {
       tier: subscription?.tier ?? "free",
-      scan_interval_seconds: subscription?.scan_interval_seconds ?? 1800,
+      scan_interval_seconds: subscription?.scan_interval_seconds ?? getScanInterval("free"),
       status: subscription?.status ?? "active",
     },
     notifications: notifications.map((n) => ({
