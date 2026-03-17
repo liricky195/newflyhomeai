@@ -4,7 +4,9 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmit": false,
+    "noEmitOnError": false,
     "outDir": ".scripts-dist"
   },
-  "include": ["scripts/**/*.ts", "lib/**/*.ts"]
+  "include": ["scripts/**/*.ts", "lib/**/*.ts"],
+  "exclude": ["node_modules"]
 }

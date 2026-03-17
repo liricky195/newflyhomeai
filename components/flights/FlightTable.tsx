@@ -54,7 +54,6 @@ interface SortState {
 }
 
 interface FilterState {
-  showWithoutPrice: boolean;
   enableMaxPrice: boolean;
 }
 
@@ -81,7 +80,7 @@ export default function FlightTable({
 }: FlightTableProps) {
   // ── Scan context ───────────────────────────────────────────────────────────
   // globalMutate fires at the scan boundary to revalidate the flights SWR key.
-  const { remaining, airportIata: contextAirportIata, scanIntervalSeconds, nextScanAt: contextNextScanAt } = useScan();
+  const { remaining, airportIata: contextAirportIata, scanIntervalSeconds } = useScan();
 
   // Fetch user's monitored airports to get max_price_usd
   const { data: monitoredData } = useSWR("/api/monitored-airports", fetcher, { revalidateOnFocus: false });
@@ -89,9 +88,8 @@ export default function FlightTable({
   const REMINDER_KEY = "flyhome_reminder_dismissed_v1";
   const [reminderOpen, setReminderOpen] = useState(false);
 
-  // Filter state for showing/hiding flights without prices and max price
+  // Filter state for max price
   const [filter, setFilter] = useState<FilterState>({
-    showWithoutPrice: false,
     enableMaxPrice: false,
   });
 
@@ -198,23 +196,6 @@ export default function FlightTable({
     }
   );
 
-  const getNextScanAt = () => {
-    if (error) return null;
-    
-    const dataNextScanAt = data?.nextScanAt;
-    const contextNext = contextNextScanAt;
-    const now = Math.floor(Date.now() / 1000);
-    
-    // If data timestamp is in the past or invalid, use context timestamp
-    if (!dataNextScanAt || dataNextScanAt <= now) {
-      return contextNext;
-    }
-    
-    // Otherwise use data timestamp
-    return dataNextScanAt;
-  };
-
-  const nextScanAtValue = getNextScanAt();
 
   // Seed SWR from localStorage after hydration. Using useEffect (not useMemo)
   // ensures this only runs on the client after the server-rendered HTML has
@@ -269,10 +250,8 @@ export default function FlightTable({
     
     let filteredFlights = data.flights;
     
-    // Apply showWithoutPrice filter
-    if (filter.showWithoutPrice) {
-      filteredFlights = filteredFlights.filter((flight) => flight.lowest_price_cents != null && flight.lowest_price_cents > 0);
-    }
+    // Always hide flights without prices
+    filteredFlights = filteredFlights.filter((flight) => flight.lowest_price_cents != null && flight.lowest_price_cents > 0);
     
     // Apply max price filter
     if (filter.enableMaxPrice && monitoredData?.airport?.max_price_usd) {
@@ -348,36 +327,9 @@ export default function FlightTable({
               </svg>
               Alerts
             </button>
-            <ScanCountdown 
-              nextScanAt={nextScanAtValue} 
-              airportIata={lockedAirport} 
-            />
+            <ScanCountdown />
             <span className="font-mono text-white">{clock}</span>
           </div>
-        </div>
-
-        {/* Filter toggle */}
-        <div className="flex mb-8  items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-white">Hide flights without prices</p>
-            <p className="text-xs text-slate-400">
-              Only show flights that have pricing information
-            </p>
-          </div>
-          <button
-            role="switch"
-            aria-checked={filter.showWithoutPrice}
-            onClick={() => setFilter({ ...filter, showWithoutPrice: !filter.showWithoutPrice })}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
-              filter.showWithoutPrice ? "bg-accent" : "bg-navy-600"
-            }`}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
-                filter.showWithoutPrice ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </button>
         </div>
 
         {/* Max price filter toggle */}

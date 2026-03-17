@@ -8,8 +8,6 @@ import PageTransition from "@/components/shared/PageTransition";
 import AirportStatusCard from "@/components/dashboard/AirportStatusCard";
 import ScanCountdown from "@/components/dashboard/ScanCountdown";
 import AlertFeed from "@/components/dashboard/AlertFeed";
-import { useScan } from "@/contexts/ScanContext";
-
 interface DashboardData {
   airport: { iata: string; destination_iata: string | null; active: number; last_scan_at: number | null };
   subscription: { tier: string; scan_interval_seconds: number; status: string };
@@ -18,7 +16,6 @@ interface DashboardData {
 export default function DashboardPage() {
   const { status } = useSession({ required: true });
   const router = useRouter();
-  const { nextScanAt } = useScan();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +68,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-3">
           <AirportStatusCard airportIata={data.airport.iata} />
-          <ScanCountdown nextScanAt={nextScanAt} />
+          <ScanCountdown />
           <AlertFeed />
         </div>
 

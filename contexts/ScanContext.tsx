@@ -75,12 +75,6 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
     {
       refreshInterval: 60_000,
       revalidateOnFocus: false,
-      // Prevent an immediate fetch on every ScanProvider mount (page load,
-      // re-login, new tab). The 60-second refreshInterval is sufficient to
-      // keep scan-status current; a mount-time fetch adds no value and can
-      // create a race window where the countdown effect re-evaluates with a
-      // freshly-cleared scanFiredRef before the new data arrives.
-      revalidateOnMount: false,
     }
   );
 

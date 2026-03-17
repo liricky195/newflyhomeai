@@ -11,16 +11,15 @@ export default function Hero() {
           Real-time flight monitoring
         </p>
 
-        <h1 className="text-4xl font-bold leading-tight tracking-tight text-white md:text-6xl">
-          Get home faster,
+        <h1 className="text-3xl font-bold leading-tight tracking-tight text-white md:text-5xl">
+          Never miss your next flight out,
           <br />
-          <span className="text-accent">with AI.</span>
+          <span className="text-accent">ever again.</span>
         </h1>
 
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-400">
           Passive flight monitoring for airports with major disruptions.
-          Instantly find and book rerouted flights home from your nearest
-          Gulf&nbsp;airport.
+          Instantly find and book rerouted flights home from your stranded&nbsp;airport.
         </p>
 
         <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

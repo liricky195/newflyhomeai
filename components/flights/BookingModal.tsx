@@ -82,15 +82,14 @@ export default function BookingModal({ flight, onClose }: BookingModalProps) {
 
       setModalState("redirecting");
 
-      // Build Google Flights URL
       const departureDate = new Date(flight.scheduled_departure * 1000)
         .toISOString()
         .slice(0, 10);
-      
-      const googleFlightsUrl = `https://www.google.com/flights?q=Flights%20from%20${flight.departure_airport}%20to%20${flight.destination_airport}%20on%20${departureDate}`;
+      const googleFlightsUrl = `https://www.google.com/travel/flights?q=One-way+Flights+from+${flight.departure_airport}+to+${flight.destination_airport}+on+${departureDate}`;
 
       setTimeout(() => {
-        window.location.href = googleFlightsUrl;
+        window.open(googleFlightsUrl, "_blank");
+        setModalState("ready");
       }, 500);
     },
     [flight]

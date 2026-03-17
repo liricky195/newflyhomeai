@@ -88,15 +88,24 @@ export async function notifyUsersOfNewFlight(
       : `${flight.flight_number} is now ${flight.status}`;
 
   for (const { user_id, max_price_usd } of users) {
-    // If flight has a price and user has a max price filter, check it
-    if (flight.lowest_price_cents != null && max_price_usd !== null) {
+    // Only notify if the flight has a Duffel price
+    if (flight.lowest_price_cents == null || flight.lowest_price_cents <= 0) {
+      log("debug", "monitor", `Skipping notification for user ${user_id}: flight has no price`, {
+        user_id,
+        flight_id: flight.id,
+      });
+      continue;
+    }
+
+    // If user has a max price set, enforce it
+    if (max_price_usd !== null) {
       const flightPriceUsd = flight.lowest_price_cents / 100;
       if (flightPriceUsd > max_price_usd) {
         log("debug", "monitor", `Skipping notification for user ${user_id}: flight price ${flightPriceUsd} USD > max price ${max_price_usd} USD`, {
           user_id,
           flight_id: flight.id,
           price: flightPriceUsd,
-          max_price: max_price_usd
+          max_price: max_price_usd,
         });
         continue;
       }

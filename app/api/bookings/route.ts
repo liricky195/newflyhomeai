@@ -2,38 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
-import crypto from "crypto";
-import {
-  initDb,
-  getBookingsWithFlightsByUserId,
-  createPendingBookingForDuffel,
-  deletePendingBooking,
-} from "@/lib/db";
-import { createDuffelLink, ApiError } from "@/lib/duffel";
+import { initDb, getBookingsWithFlightsByUserId } from "@/lib/db";
 import { log, logRequest } from "@/lib/logger";
-import { rateLimit } from "@/lib/rateLimit"; // HARDENED IN STEP 10: rate limiting
-import { corsHeaders } from "@/lib/cors"; // HARDENED IN STEP 10: CORS
+import { rateLimit } from "@/lib/rateLimit";
+import { corsHeaders } from "@/lib/cors";
 
 // ─── Zod schema ──────────────────────────────────────────────────────────────
 
 const PostBookingSchema = z.object({
-  offerId: z.string().min(1),
   flightId: z.string().min(1),
-  given_name: z.string().min(1),
-  family_name: z.string().min(1),
-  born_on: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "born_on must be in YYYY-MM-DD format")
-    .refine((v) => new Date(v) <= new Date(), { message: "born_on must be in the past" }),
-  passport_number: z.string().min(1),
-  nationality: z
-    .string()
-    .length(2)
-    .regex(/^[A-Z]{2}$/, "nationality must be a 2-letter uppercase ISO code"),
-  phone: z
-    .string()
-    .regex(/^\+[1-9]\d{6,14}$/, "phone must be E.164 format")
-    .optional(),
 });
 
 // ─── OPTIONS /api/bookings (CORS preflight) ───────────────────────────────────
@@ -49,7 +26,7 @@ export async function OPTIONS(request: NextRequest) {
 // ─── POST /api/bookings ───────────────────────────────────────────────────────
 
 export async function POST(request: NextRequest) {
-  const startMs = Date.now(); // HARDENED IN STEP 10: request duration tracking
+  const startMs = Date.now();
   const origin = request.headers.get("origin");
 
   // 1. Auth check
@@ -63,7 +40,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 2. HARDENED IN STEP 10: rate limiting — 5 requests per 60 s per user
+  // 2. Rate limiting — 5 requests per 60 s per user
   const rl = rateLimit("bookings_post:" + session.user.id, 5, 60_000);
   if (!rl.allowed) {
     const durationMs = Date.now() - startMs;
@@ -107,36 +84,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const {
-    offerId,
-    flightId,
-    given_name,
-    family_name,
-    born_on,
-    passport_number,
-    nationality,
-    phone,
-  } = parsed.data;
+  const { flightId } = parsed.data;
 
   initDb();
 
-  // 4. Flight ownership check
+  // 4. Look up flight to get route and departure date
   const { getDb } = await import("@/lib/db");
   const flightRow = getDb()
-    .prepare<[string], { id: string; departure_airport: string }>(
-      "SELECT id, departure_airport FROM flights WHERE id = ?"
+    .prepare<
+      [string],
+      {
+        id: string;
+        departure_airport: string;
+        destination_airport: string;
+        scheduled_departure: number;
+      }
+    >(
+      "SELECT id, departure_airport, destination_airport, scheduled_departure FROM flights WHERE id = ?"
     )
     .get(flightId);
 
   if (!flightRow) {
     const durationMs = Date.now() - startMs;
-    logRequest("POST", "/api/bookings", 403, durationMs, session.user.id);
+    logRequest("POST", "/api/bookings", 404, durationMs, session.user.id);
     return NextResponse.json(
-      { error: "Flight does not belong to your monitored airport" },
-      { status: 403, headers: corsHeaders(origin) }
+      { error: "Flight not found" },
+      { status: 404, headers: corsHeaders(origin) }
     );
   }
 
+  // 5. Verify flight belongs to the user's monitored airport
   const userAirport = getDb()
     .prepare<[string], { airport_iata: string }>(
       "SELECT airport_iata FROM monitored_airports WHERE user_id = ? AND active = 1 LIMIT 1"
@@ -152,84 +129,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 5. Insert pending booking row
-  const internalReference = crypto.randomUUID();
-  let pendingBooking;
-  try {
-    pendingBooking = createPendingBookingForDuffel({
-      id: crypto.randomUUID(),
-      user_id: session.user.id,
-      flight_id: flightId,
-      duffel_offer_id: offerId,
-      internal_reference: internalReference,
-      passenger_details: JSON.stringify({
-        given_name,
-        family_name,
-        born_on,
-        passport_number,
-        nationality,
-        phone,
-      }),
-    });
-  } catch (err) {
-    log("error", "bookings", "DB insert failed for pending booking", { err: String(err) });
-    const durationMs = Date.now() - startMs;
-    logRequest("POST", "/api/bookings", 500, durationMs, session.user.id);
-    return NextResponse.json(
-      { error: "Failed to create booking record" },
-      { status: 500, headers: corsHeaders(origin) }
-    );
-  }
+  // 6. Build Google Flights URL
+  const departureDate = new Date(flightRow.scheduled_departure * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const checkoutUrl = `https://www.google.com/travel/flights?q=One-way+Flights+from+${flightRow.departure_airport}+to+${flightRow.destination_airport}+on+${departureDate}`;
 
-  // 6. Create Duffel Link for the booking
-  const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
-  const successUrl = `${baseUrl}/bookings/confirm?ref=${pendingBooking.internal_reference}`;
-  const abandonUrl = `${baseUrl}/flights`;
+  const durationMs = Date.now() - startMs;
+  logRequest("POST", "/api/bookings", 200, durationMs, session.user.id);
+  log("info", "bookings", "Google Flights redirect", {
+    userId: session.user.id,
+    flightId,
+    checkoutUrl,
+  });
 
-  try {
-    const link = await createDuffelLink({
-      offerId,
-      reference: pendingBooking.internal_reference ?? internalReference,
-      successUrl,
-      abandonUrl,
-    });
-    const durationMs = Date.now() - startMs;
-    logRequest("POST", "/api/bookings", 200, durationMs, session.user.id);
-    return NextResponse.json(
-      { checkoutUrl: link.url, bookingId: pendingBooking.id },
-      { headers: corsHeaders(origin) }
-    );
-  } catch (err) {
-    console.log(err);
-    try {
-      deletePendingBooking(pendingBooking.id);
-    } catch (deleteErr) {
-      log("error", "bookings", "Failed to delete orphaned booking", { err: String(deleteErr) });
-    }
-    const message = err instanceof ApiError ? err.apiMessage : (err as Error).message;
-    const durationMs = Date.now() - startMs;
-
-    // Special handling for offer expiry (404 Not Found)
-    if (err instanceof ApiError && err.httpStatus === 404) {
-      logRequest("POST", "/api/bookings", 400, durationMs, session.user.id);
-      return NextResponse.json(
-        { error: "This flight offer has expired. Please go back and select the flight again." },
-        { status: 400, headers: corsHeaders(origin) }
-      );
-    }
-
-    logRequest("POST", "/api/bookings", 502, durationMs, session.user.id);
-    return NextResponse.json(
-      { error: message },
-      { status: 502, headers: corsHeaders(origin) }
-    );
-  }
+  return NextResponse.json(
+    { checkoutUrl },
+    { headers: corsHeaders(origin) }
+  );
 }
 
 // ─── GET /api/bookings ────────────────────────────────────────────────────────
 
 export async function GET(request?: NextRequest) {
-  const startMs = Date.now(); // HARDENED IN STEP 10
+  const startMs = Date.now();
   const origin = request?.headers?.get("origin") ?? null;
 
   const session = await getServerSession(authOptions);

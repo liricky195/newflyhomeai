@@ -4,6 +4,9 @@ import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Set to true to re-enable email magic-link sign-in on the auth page.
+const SHOW_EMAIL_SIGN_IN = false;
+
 const ERROR_MESSAGES: Record<string, string> = {
   OAuthSignin: "Could not start the sign-in flow. Please try again.",
   OAuthCallback: "Sign-in was interrupted. Please try again.",
@@ -78,45 +81,49 @@ export default function AuthPage() {
 
           {!emailSent ? (
             <div className="space-y-6">
-              <form onSubmit={handleEmailLogin} className="space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-xs font-medium uppercase tracking-wider text-slate-500 mb-1.5">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className="w-full rounded-lg border border-border bg-navy-800 px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-colors focus:border-accent/50"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={emailLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-navy transition-colors hover:bg-accent-dark disabled:opacity-50"
-                >
-                  {emailLoading ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Sign in with Email"
-                  )}
-                </button>
-              </form>
+              {SHOW_EMAIL_SIGN_IN && (
+                <>
+                  <form onSubmit={handleEmailLogin} className="space-y-4">
+                    <div>
+                      <label htmlFor="email" className="block text-xs font-medium uppercase tracking-wider text-slate-500 mb-1.5">
+                        Email Address
+                      </label>
+                      <input
+                        id="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        required
+                        className="w-full rounded-lg border border-border bg-navy-800 px-4 py-2.5 text-sm text-white placeholder-slate-600 outline-none transition-colors focus:border-accent/50"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={emailLoading}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-navy transition-colors hover:bg-accent-dark disabled:opacity-50"
+                    >
+                      {emailLoading ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Sign in with Email"
+                      )}
+                    </button>
+                  </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-navy-700 px-2 text-slate-500">Or continue with</span>
-                </div>
-              </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t border-border"></div>
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-navy-700 px-2 text-slate-500">Or continue with</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <button
                 onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
