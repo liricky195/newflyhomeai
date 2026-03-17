@@ -6,11 +6,7 @@ import { updateSubscriptionOverride, flagAirportForImmediateScan } from "@/lib/d
 import type { SubscriptionTier } from "@/lib/db";
 import { getScanInterval } from "@/lib/tierIntervals";
 import { log } from "@/lib/logger";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2024-04-10" as Stripe.LatestApiVersion,
-});
+import { getStripe } from "@/lib/stripe";
 
 const SubscriptionSchema = z.object({
   tier: z.enum(["free", "standard", "pro", "ultimate"]),
@@ -60,7 +56,7 @@ export async function PATCH(
 
     if (tier === "free" && stripeSubscriptionId) {
       try {
-        await stripe.subscriptions.cancel(stripeSubscriptionId, {
+        await getStripe().subscriptions.cancel(stripeSubscriptionId, {
           invoice_now: false,
           prorate: false,
         });
