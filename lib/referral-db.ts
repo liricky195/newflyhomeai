@@ -24,7 +24,7 @@ export async function getUserReferralCode(userId: string): Promise<string | null
     'SELECT referral_code FROM users WHERE id = ?'
   ).get(userId);
   
-  return result?.referral_code || null;
+  return (result as any)?.referral_code || null;
 }
 
 export async function validateReferralCode(code: string): Promise<ReferralCode | null> {
@@ -36,7 +36,7 @@ export async function validateReferralCode(code: string): Promise<ReferralCode |
      AND referred_id IS NULL`
   ).get(code);
   
-  return result || null;
+  return (result as ReferralCode) || null;
 }
 
 export async function applyReferralCode(referrerId: string, referredId: string, code: string): Promise<void> {
