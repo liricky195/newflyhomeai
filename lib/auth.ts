@@ -48,11 +48,7 @@ function sqliteAdapter(): Adapter {
       });
 
       // Every new user gets a free-tier subscription row
-      const subId = crypto.randomUUID();
-      const existing = getSubscriptionByUserId(created.id);
-      if (!existing) {
-        createSubscription({ id: subId, user_id: created.id });
-      }
+      createDefaultSubscription({ id: subId, user_id: created.id });
 
       return toAdapterUser(created);
     },
