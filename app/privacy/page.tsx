@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
         <div className="prose prose-invert max-w-none">
           <h2 className="text-3xl font-bold text-white mb-6 mt-8">1. Introduction</h2>
           <p className="text-slate-300 mb-4 leading-relaxed">
-            FlyHome AI ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and protect your information when you use our flight monitoring and booking service.
+            {"FlyHome AI (\"we,\" \"our,\" or \"us\") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and protect your information when you use our flight monitoring and booking service."}
           </p>
 
           <h2 className="text-3xl font-bold text-white mb-6 mt-8">2. Information We Collect</h2>
@@ -152,7 +152,7 @@ export default function PrivacyPolicyPage() {
             Your information may be transferred to and processed in countries outside your own. We ensure appropriate safeguards are in place for international data transfers.
           </p>
 
-          <h2 className="text-3xl font-bold text-white mb-6 mt-8">10. Children's Privacy</h2>
+          <h2 className="text-3xl font-bold text-white mb-6 mt-8">{"10. Children's Privacy"}</h2>
           <p className="text-slate-300 mb-4 leading-relaxed">
             Our service is not intended for children under 16. We do not knowingly collect information from children under 16.
           </p>

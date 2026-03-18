@@ -10,7 +10,7 @@ export default function TermsOfServicePage() {
         <div className="prose prose-invert max-w-none">
           <h2 className="text-3xl font-bold text-white mb-6 mt-8">1. Agreement to Terms</h2>
           <p className="text-slate-300 mb-4 leading-relaxed">
-            By accessing and using FlyHome AI ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our Service.
+            {"By accessing and using FlyHome AI (\"Service\"), you agree to be bound by these Terms of Service (\"Terms\"). If you do not agree to these Terms, please do not use our Service."}
           </p>
 
           <h2 className="text-3xl font-bold text-white mb-6 mt-8">2. Description of Service</h2>
@@ -171,7 +171,7 @@ export default function TermsOfServicePage() {
           
           <h3 className="text-xl font-semibold text-white mb-3 mt-4">10.1 Service Availability</h3>
           <ul className="list-disc mb-4">
-            <li className="text-slate-300 ml-6 mb-1">The Service is provided "as is" and "as available"</li>
+            <li className="text-slate-300 ml-6 mb-1">{"The Service is provided \"as is\" and \"as available\""}</li>
             <li className="text-slate-300 ml-6 mb-1">We do not guarantee uninterrupted or error-free service</li>
             <li className="text-slate-300 ml-6 mb-1">We may suspend or terminate the Service for maintenance</li>
           </ul>
@@ -221,7 +221,7 @@ export default function TermsOfServicePage() {
           
           <h3 className="text-xl font-semibold text-white mb-3 mt-4">13.1 Governing Law</h3>
           <p className="text-slate-300 mb-4 leading-relaxed">
-            These Terms are governed by the laws of [Your Jurisdiction].
+            These Terms are governed by the laws of Hong Kong.
           </p>
 
           <h3 className="text-xl font-semibold text-white mb-3 mt-4">13.2 Dispute Resolution</h3>
@@ -253,7 +253,7 @@ export default function TermsOfServicePage() {
         
         <div className="mt-12 pt-8 border-t border-border">
           <p className="text-slate-400 text-sm">
-            If you have questions about these Terms of Service, please contact us at{" "}
+            If you have questions about these Terms of Service, please contact us at
             <a href="mailto:support@flyhome.ai" className="text-accent hover:underline">
               support@flyhome.ai
             </a>
