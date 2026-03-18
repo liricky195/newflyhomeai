@@ -48,7 +48,7 @@ function sqliteAdapter(): Adapter {
       });
 
       // Every new user gets a free-tier subscription row
-      createDefaultSubscription({ id: subId, user_id: created.id });
+      createDefaultSubscription(created.id);
 
       return toAdapterUser(created);
     },
