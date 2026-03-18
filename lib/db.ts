@@ -296,7 +296,7 @@ export function initDb(db?: Database.Database): void {
                                CHECK (tier IN ('free','standard','pro','ultimate')),
       status                 TEXT    NOT NULL DEFAULT 'active'
                                CHECK (status IN ('active','canceled','past_due','trialing')),
-      scan_interval_seconds  INTEGER NOT NULL,
+      scan_interval_seconds  INTEGER NOT NULL DEFAULT 600,
       current_period_end     INTEGER,
       created_at             INTEGER NOT NULL DEFAULT (unixepoch()),
       updated_at             INTEGER NOT NULL DEFAULT (unixepoch())
