@@ -130,7 +130,7 @@ export default function FAQ() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">Frequently Asked Questions</h2>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Everything you need to know about FlyHome AI's flight monitoring and booking service
+            {"Everything you need to know about FlyHome AI's flight monitoring and booking service"}
           </p>
         </div>
 

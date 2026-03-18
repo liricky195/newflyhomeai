@@ -125,7 +125,7 @@ export default function CookiePolicyPage() {
 
           <h3 className="text-xl font-semibold text-white mb-3 mt-4">6.2 Our Cookie Consent Tool</h3>
           <p className="text-slate-300 mb-4 leading-relaxed">
-            When you first visit our Service, you'll see a cookie consent banner where you can:
+            {"When you first visit our Service, you'll see a cookie consent banner where you can:"}
           </p>
           <ul className="list-disc mb-4">
             <li className="text-slate-300 ml-6 mb-1">Accept all cookies</li>
@@ -168,9 +168,9 @@ export default function CookiePolicyPage() {
             If you disable analytics cookies:
           </p>
           <ul className="list-disc mb-4">
-            <li className="text-slate-300 ml-6 mb-1">Your usage won't be tracked for analytics</li>
+            <li className="text-slate-300 ml-6 mb-1">{"Your usage won't be tracked for analytics"}</li>
             <li className="text-slate-300 ml-6 mb-1">Service improvements may be slower</li>
-            <li className="text-slate-300 ml-6 mb-1">We won't receive usage statistics</li>
+            <li className="text-slate-300 ml-6 mb-1">{"We won't receive usage statistics"}</li>
           </ul>
 
           <h3 className="text-xl font-semibold text-white mb-3 mt-4">7.4 Marketing Cookies</h3>
