@@ -1608,16 +1608,38 @@ export function clearImmediateScanFlag(airportIata: string): void {
  * Sets last_scanned_at = now and next_scan_at = now + intervalSeconds for all active users.
  * Must only be called on successful poll completion — never on error or timeout.
  */
-export function updateScanTimestamps(airportIata: string, intervalSeconds: number): void {
+export function updateScanTimestamps(airportIata: string, _intervalSeconds: number): void {
   const conn = getDb();
   const now = Math.floor(Date.now() / 1000);
+
+  // Update last_scanned_at for all active users on this airport
   conn
-    .prepare<[number, number, string]>(
+    .prepare<[number, string]>(
       `UPDATE monitored_airports
-       SET last_scanned_at = ?, user_next_scan_at = ?
+       SET last_scanned_at = ?
        WHERE airport_iata = ? AND active = 1`
     )
-    .run(now, now + intervalSeconds, airportIata);
+    .run(now, airportIata);
+
+  // Update user_next_scan_at per user using their own subscription interval
+  const users = conn
+    .prepare<[string], { user_id: string; scan_interval_seconds: number }>(
+      `SELECT ma.user_id, COALESCE(s.scan_interval_seconds, 1800) AS scan_interval_seconds
+       FROM monitored_airports ma
+       LEFT JOIN subscriptions s ON s.user_id = ma.user_id AND s.status = 'active'
+       WHERE ma.airport_iata = ? AND ma.active = 1`
+    )
+    .all(airportIata);
+
+  const stmt = conn.prepare<[number, string]>(
+    `UPDATE monitored_airports
+     SET user_next_scan_at = ?
+     WHERE user_id = ? AND active = 1`
+  );
+
+  for (const user of users) {
+    stmt.run(now + user.scan_interval_seconds, user.user_id);
+  }
 }
 
 /**
