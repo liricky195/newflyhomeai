@@ -39,18 +39,23 @@ export async function GET() {
       console.log(`[scan-status] Bootstrap: writing nextScanAt=${nextScanAt} (anchor=${anchor})`);
       setUserNextScanAt(session.user.id, nextScanAt);
     } else if (nextScanAt !== null && nextScanAt <= now) {
-      // The stored timestamp has expired — the monitor is either mid-scan or
-      // about to run.  Compute a best-effort estimate for the UI countdown but
-      // DO NOT write it to the DB.  All tabs and devices share the same
-      // last_scanned_at anchor from the DB, so they independently arrive at the
-      // same estimate without overwriting each other.  The monitor will write
-      // the authoritative next value via updateScanTimestamps once it finishes.
-      const anchor = airport?.last_scanned_at ?? airport?.last_scan_at ?? now;
-      nextScanAt = anchor + scanIntervalSeconds;
+      // The stored timestamp has expired — the monitor is mid-scan or about to
+      // run.  Use the expired value itself as a fixed anchor so every tab/device
+      // independently computes the SAME estimate (expiredAt + interval is a
+      // constant, unlike now + interval which drifts per call).  Write the
+      // estimate back to the DB so that page refreshes and new tabs read a
+      // future value instead of re-entering this expired case and always showing
+      // the full interval.  The monitor's updateScanTimestamps will overwrite
+      // this estimate with the authoritative value once the scan completes.
+      const expiredAt = nextScanAt;
+      nextScanAt = expiredAt + scanIntervalSeconds;
       if (nextScanAt <= now) {
+        // Monitor is severely delayed (>2× interval); minor per-tab drift here
+        // is acceptable.
         nextScanAt = now + scanIntervalSeconds;
       }
-      console.log(`[scan-status] Expired — estimate (not persisted): ${nextScanAt} (anchor=${anchor})`);
+      console.log(`[scan-status] Expired — estimate (persisted): ${nextScanAt} (expiredAt=${expiredAt})`);
+      setUserNextScanAt(session.user.id, nextScanAt);
     }
 
     return NextResponse.json({

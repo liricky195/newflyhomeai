@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import useSWR, { useSWRConfig } from "swr";
+import useSWR from "swr";
 import AirportCombobox from "@/components/shared/AirportCombobox";
 
 const jsonFetcher = (url: string) =>
@@ -10,7 +11,7 @@ const jsonFetcher = (url: string) =>
 
 export default function FirstAirportModal() {
   const { status } = useSession();
-  const { mutate: globalMutate } = useSWRConfig();
+  const router = useRouter();
   const [selectedIata, setSelectedIata] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,19 +62,7 @@ export default function FirstAirportModal() {
 
       await mutate();
       setDismissed(true);
-
-      // Trigger a GET /api/flights refresh 3 seconds after the user confirms
-      // their stranded airport, giving the monitor time to complete the
-      // immediate scan (flagged by the POST handler via flagAirportForImmediateScan).
-      // This is Case 2 of the scan-trigger contract: "user chooses stranded airport".
-      // The timeout is intentionally NOT cleared on unmount — the component may
-      // already be hidden (dismissed = true) when it fires, but the SWR mutate
-      // is idempotent and safe to call from a detached closure.
-      const iata = selectedIata;
-      setTimeout(() => {
-        globalMutate(`/api/flights?airport=${iata}`);
-        globalMutate("/api/scan-status");
-      }, 3000);
+      router.push("/flights");
     } catch (err) {
       setError((err as Error).message);
     } finally {
