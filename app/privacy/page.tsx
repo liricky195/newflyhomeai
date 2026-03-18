@@ -21,7 +21,7 @@ export default function PrivacyPolicyPage() {
             <li className="text-slate-300 ml-6 mb-1"><strong>Name:</strong> Display name and booking information</li>
             <li className="text-slate-300 ml-6 mb-1"><strong>Phone Number:</strong> Optional, for flight booking notifications</li>
             <li className="text-slate-300 ml-6 mb-1"><strong>Date of Birth:</strong> Required for flight bookings</li>
-            <li className="text-slate-300 ml-6 mb-1"><strong>Nationality & Passport Information:</strong> Required for international flight bookings</li>
+            <li className="text-slate-300 ml-6 mb-1"><strong>Nationality &amp; Passport Information:</strong> Required for international flight bookings</li>
             <li className="text-slate-300 ml-6 mb-1"><strong>Payment Information:</strong> Processed securely through Stripe and Duffel (we never store card details)</li>
           </ul>
 
