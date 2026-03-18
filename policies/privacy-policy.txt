@@ -1,0 +1,144 @@
+# Privacy Policy
+
+**FlyHome AI**
+_Last updated: March 2026_
+
+---
+
+## 1. Introduction
+
+FlyHome AI ("we", "us", "our") operates a flight monitoring and booking service that helps stranded travellers find and book available flights home. This Privacy Policy explains what personal data we collect, how we use it, and your rights in relation to it.
+
+By creating an account and using FlyHome AI, you agree to the collection and use of information in accordance with this policy.
+
+---
+
+## 2. Information We Collect
+
+### 2.1 Account Information
+When you sign in with Google OAuth, we receive and store:
+- Your name
+- Your email address
+- Your Google profile picture (URL)
+
+We do not receive or store your Google password.
+
+### 2.2 Travel & Monitoring Preferences
+When you set up flight monitoring, we store:
+- Your chosen departure airport (IATA code)
+- Destination airport preferences (if set)
+- Maximum price preference (if set)
+
+This airport selection is **permanent** and cannot be changed after it is set. Contact support@flyhome.ai if you would like it to be changed.
+
+### 2.3 Passenger Details
+If you proceed to book a flight, we collect and store:
+- Full legal name
+- Date of birth
+- Passport number and expiry date
+- Nationality
+- Phone number
+
+This information is used solely to complete flight bookings through our third-party booking provider (Duffel).
+
+### 2.4 Payment Information
+We use Stripe to process payments. We do not store your card details. We retain:
+- Your Stripe customer ID
+- Your subscription tier and status
+- Transaction references for booking records
+
+### 2.5 Booking Records
+For completed bookings we store:
+- Flight details
+- Booking reference
+- Ticket number
+- Amount paid and currency
+- Booking status
+
+### 2.6 Notifications
+If you enable push notifications, we store:
+- Your browser push subscription endpoint and encryption keys
+- Notification history (title, body, timestamp, read status)
+
+### 2.7 Technical Data
+We store session tokens to keep you logged in. We do not use advertising cookies or third-party tracking.
+
+---
+
+## 3. How We Use Your Information
+
+| Purpose | Legal Basis |
+|---|---|
+| Authenticating your account | Contractual necessity |
+| Monitoring flights on your behalf | Contractual necessity |
+| Sending flight alerts and notifications | Contractual necessity / Consent |
+| Processing bookings via Duffel | Contractual necessity |
+| Processing payments via Stripe | Contractual necessity |
+| Preventing fraud and abuse | Legitimate interest |
+| Improving the service | Legitimate interest |
+
+We do not sell your personal data. We do not use your data for advertising purposes.
+
+---
+
+## 4. Third-Party Services
+
+FlyHome AI shares data with the following third parties only to the extent necessary to operate the service:
+
+- **Google** — for authentication via OAuth. Governed by [Google's Privacy Policy](https://policies.google.com/privacy).
+- **Stripe** — for payment processing and subscription management. Governed by [Stripe's Privacy Policy](https://stripe.com/privacy).
+- **Duffel** — for flight search and booking. Passenger details are transmitted to Duffel to complete bookings.
+
+We do not share your data with any other third parties.
+
+---
+
+## 5. Data Retention
+
+We retain your data for as long as your account is active. If you request account deletion, we will delete:
+- Your user record
+- Your session data
+- Your airport monitoring preferences
+- Your push notification subscriptions
+
+Booking records may be retained for legal and financial compliance purposes even after account deletion.
+
+---
+
+## 6. Security
+
+We store data in a secured SQLite database. Sessions are managed server-side using cryptographically random tokens. Passwords are never stored — authentication is handled entirely via Google OAuth.
+
+Despite our precautions, no method of transmission over the internet is 100% secure. We cannot guarantee absolute security.
+
+---
+
+## 7. Children's Privacy
+
+FlyHome AI is not directed at children under the age of 13. We do not knowingly collect personal information from children. If you believe a child has provided us with personal data, please contact us so we can delete it.
+
+---
+
+## 8. Your Rights
+
+Depending on your jurisdiction, you may have the right to:
+- Access the personal data we hold about you
+- Request correction of inaccurate data
+- Request deletion of your account and data
+- Object to or restrict certain processing
+
+To exercise any of these rights, please contact us at the address below.
+
+---
+
+## 9. Changes to This Policy
+
+We may update this Privacy Policy from time to time. We will notify you of significant changes by posting the new policy on this page with an updated date. Continued use of the service after changes constitutes acceptance.
+
+---
+
+## 10. Contact
+
+For any privacy-related questions or requests, please contact us at: support@flyhome.ai
+
+**FlyHome AI**

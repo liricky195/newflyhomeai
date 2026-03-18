@@ -1,0 +1,154 @@
+# Terms and Conditions
+
+**FlyHome AI**
+_Last updated: March 2026_
+
+---
+
+## 1. Acceptance of Terms
+
+By creating an account and using FlyHome AI ("the Service"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the Service.
+
+---
+
+## 2. Description of Service
+
+FlyHome AI is a flight monitoring and booking platform designed to help stranded travellers find available flights home. The Service:
+
+- Monitors a chosen departure airport at regular intervals based on your subscription tier
+- Alerts you when bookable flights become available
+- Facilitates flight bookings through our third-party provider, Duffel
+- Processes payments through Stripe
+
+---
+
+## 3. Account Registration
+
+### 3.1
+You must sign in using a valid Google account. You are responsible for maintaining the security of your Google account.
+
+### 3.2
+By creating an account, you confirm that the information you provide is accurate and that you are at least 18 years of age.
+
+### 3.3
+Each user may hold one account. Creating multiple accounts to circumvent subscription limits is prohibited.
+
+---
+
+## 4. Airport Selection
+
+When onboarding, you will be prompted to select your stranded departure airport. **This selection is permanent and cannot be changed after it is set.** Please ensure you select the correct airport before confirming, as we are unable to modify this on your behalf.
+
+---
+
+## 5. Subscriptions and Payments
+
+### 5.1 Subscription Tiers
+FlyHome AI offers multiple subscription tiers (Free, Standard, Pro, Ultimate) with different flight scan intervals. Higher tiers receive more frequent scans.
+
+### 5.2 Billing
+Paid subscriptions are billed through Stripe. By subscribing, you authorise us to charge your payment method on a recurring basis in accordance with your chosen plan.
+
+### 5.3 Cancellations
+You may cancel your subscription at any time. Your access to paid features will continue until the end of the current billing period, after which your account will revert to the Free tier.
+
+### 5.4 Refunds
+Subscription fees are non-refundable except where required by applicable law. If you believe you have been charged in error, please contact us promptly.
+
+---
+
+## 6. Flight Bookings
+
+### 6.1
+Flight bookings are facilitated through Duffel, a third-party booking provider. By proceeding with a booking, you agree to Duffel's terms of service in addition to these Terms.
+
+### 6.2
+FlyHome AI acts as an intermediary. We are not the airline, ticketing agent, or travel agent of record. The contract of carriage is between you and the operating airline.
+
+### 6.3
+Prices displayed are sourced in real time and may change between the time they are shown and the time of booking. We cannot guarantee that a displayed price will be available at the moment of purchase.
+
+### 6.4
+It is your responsibility to ensure that all passenger details submitted for a booking are accurate. Errors in passenger details may result in booking failure, denied boarding, or additional fees charged by the airline.
+
+### 6.5
+Cancellation and refund policies for booked flights are governed by the operating airline's fare rules. FlyHome AI will assist with cancellation requests where technically possible, but cannot guarantee refunds.
+
+---
+
+## 7. Scan Monitoring
+
+### 7.1
+The Service monitors your chosen departure airport at intervals determined by your subscription tier. These intervals are approximate and may vary due to system load, maintenance, or external API availability.
+
+### 7.2
+FlyHome AI does not guarantee that all available flights will be detected or that alerts will be delivered in real time. The Service is provided on a best-effort basis.
+
+### 7.3
+Push notification delivery depends on your device, browser, and network conditions. We are not responsible for missed notifications.
+
+---
+
+## 8. Acceptable Use
+
+You agree not to:
+- Use the Service for any unlawful purpose
+- Attempt to gain unauthorised access to any part of the Service or its infrastructure
+- Scrape, crawl, or automate requests to the Service beyond normal use
+- Create multiple accounts to circumvent subscription restrictions
+- Provide false passenger details when making bookings
+
+---
+
+## 9. Intellectual Property
+
+All content, branding, and code comprising FlyHome AI is the property of FlyHome AI and its licensors. You may not copy, reproduce, or distribute any part of the Service without prior written consent.
+
+---
+
+## 10. Disclaimers
+
+### 10.1
+The Service is provided "as is" and "as available" without warranties of any kind, express or implied, including but not limited to availability, accuracy, or fitness for a particular purpose.
+
+### 10.2
+FlyHome AI does not guarantee the availability of flights, the accuracy of prices, or the successful completion of any booking.
+
+### 10.3
+We are not responsible for any loss or damage arising from your reliance on information provided by the Service, including flight alerts, prices, or availability data.
+
+---
+
+## 11. Limitation of Liability
+
+To the maximum extent permitted by law, FlyHome AI shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Service, including but not limited to missed flights, accommodation costs, or travel disruptions.
+
+Our total liability for any claim arising from use of the Service shall not exceed the amount you paid to us in the 30 days preceding the claim.
+
+---
+
+## 12. Termination
+
+We reserve the right to suspend or terminate your account at any time if you breach these Terms or if we reasonably suspect fraudulent or abusive activity.
+
+You may delete your account at any time by contacting us.
+
+---
+
+## 13. Changes to Terms
+
+We may update these Terms from time to time. We will notify you of material changes by posting the updated Terms on this page with a revised date. Continued use of the Service after changes take effect constitutes your acceptance of the new Terms.
+
+---
+
+## 14. Governing Law
+
+These Terms are governed by and construed in accordance with applicable law. Any disputes shall be subject to the exclusive jurisdiction of the relevant courts.
+
+---
+
+## 15. Contact
+
+For any questions regarding these Terms, please contact: support@flyhome.ai
+
+**FlyHome AI**

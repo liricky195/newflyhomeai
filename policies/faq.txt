@@ -1,0 +1,110 @@
+# Frequently Asked Questions
+
+**FlyHome AI**
+
+---
+
+## Getting Started
+
+**What is FlyHome AI?**
+FlyHome AI is a flight monitoring and booking service for stranded travellers. You tell us your departure airport, and we continuously scan for available flights home and alert you the moment something bookable appears.
+
+**How do I create an account?**
+Sign in using your Google account — no password required. On your first login you will be prompted to select your stranded departure airport. This is the only setup step required before monitoring begins.
+
+**Can I change my departure airport after I've set it?**
+Yes. If you would like to change your departure airport, please email support at support@flyhome.ai.
+
+**Do I need to pay to use FlyHome AI?**
+No. There is a Free tier that gives you access to flight monitoring at a standard scan interval. Paid tiers are available if you want more frequent scans and faster alerts.
+
+---
+
+## Flight Monitoring
+
+**How does the flight scanner work?**
+Once you set your airport, our monitor daemon continuously polls for available flights departing from your airport. When new flights or price changes are detected, you receive an alert. The frequency of scans depends on your subscription tier.
+
+**What does the countdown timer show?**
+The countdown shows how long until the next scheduled scan of your airport. When it reaches zero, a fresh scan runs automatically and the timer resets to your tier's interval.
+
+**Why did my countdown timer reset when I refreshed the page?**
+This should not happen with the current version of the app. If you experience this, contact support at support@flyhome.ai.
+
+**How often does each tier scan?**
+Scan intervals vary by tier — higher tiers scan more frequently. You can see your current interval on your dashboard. Upgrading your subscription immediately updates your scan frequency.
+
+**Will I be notified for every flight?**
+You will be notified when new flights appear or when the status of a monitored flight changes. You can enable or disable email notifications from your account settings. Push notifications require browser permission.
+
+**What if no flights are available?**
+The scanner will keep running on your behalf. You will be notified as soon as a bookable flight appears. The app shows "Scanning…" when a scan is actively in progress.
+
+---
+
+## Bookings
+
+**Can I book a flight directly through FlyHome AI?**
+Yes. When a flight is available and bookable, you can proceed to book through the app. Bookings are processed via Duffel, our third-party flight booking provider.
+
+**What passenger details do I need to provide?**
+To complete a booking you will need to provide your full legal name, date of birth, passport number and expiry date, nationality, and phone number. These must exactly match your travel documents.
+
+**What happens after I book?**
+You will receive a booking confirmation with your booking reference and ticket number. You can view your booking history from the dashboard.
+
+**Can I cancel a booked flight?**
+Cancellation depends on the fare rules of the operating airline. Where cancellation is supported, you can request it from your bookings page. Refunds, if applicable, are processed according to the airline's policy.
+
+**What if my booking fails?**
+If a booking attempt fails, you will not be charged. You can try booking again if the flight is still available. If you were charged for a failed booking, contact us immediately.
+
+---
+
+## Subscriptions & Payments
+
+**How do I upgrade my subscription?**
+You can upgrade from your account or dashboard page. Upgrades take effect immediately and your scan interval updates right away.
+
+**How do I cancel my subscription?**
+You can cancel at any time from your account settings. You will retain access to your paid tier until the end of the current billing period, after which your account reverts to Free.
+
+**Are refunds available?**
+Subscription fees are generally non-refundable. If you believe you have been charged in error, contact us and we will review your case.
+
+**Is my payment information stored securely?**
+We do not store your card details. All payment processing is handled by Stripe, which is PCI-DSS compliant. We only retain a Stripe customer reference for subscription management.
+
+---
+
+## Account & Privacy
+
+**What data does FlyHome AI store about me?**
+We store your name, email address, profile picture URL (from Google), your airport preferences, passenger details you provide for bookings, subscription status, booking history, and push notification tokens. See our Privacy Policy for full details.
+
+**How do I delete my account?**
+Contact us and we will delete your account and associated data. Note that booking records may be retained for legal and financial compliance purposes.
+
+**Does FlyHome AI sell my data?**
+No. We do not sell, rent, or share your personal data with advertisers or any third parties beyond what is necessary to operate the service (Google for login, Stripe for payments, Duffel for bookings).
+
+---
+
+## Technical
+
+**Which browsers are supported?**
+FlyHome AI works in all modern browsers. Push notifications require a browser that supports the Web Push API (Chrome, Edge, Firefox, Safari 16.4+).
+
+**Why am I not receiving push notifications?**
+Make sure you have granted notification permission to the site in your browser settings. Some browsers or operating systems may block notifications — check your system notification settings if alerts are not coming through.
+
+**I'm getting an error signing in with Google. What should I do?**
+Try clearing your browser cache and cookies and signing in again. If the problem persists, contact us with a description of the error message you see.
+
+---
+
+## Contact
+
+Can't find what you're looking for? Reach out to us at: support@flyhome.ai
+
+**FlyHome AI**
