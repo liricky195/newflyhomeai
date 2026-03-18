@@ -52,7 +52,7 @@ const faqData: FAQItem[] = [
   {
     category: "Flight Monitoring",
     question: "What if no flights are available?",
-    answer: "The scanner will keep running on your behalf. You will be notified as soon as a bookable flight appears. The app shows 'Scanning…' when a scan is actively in progress."
+    answer: "The scanner will keep running on your behalf. You will be notified as soon as a bookable flight appears. The app shows &quot;Scanning…&quot; when a scan is actively in progress."
   },
   {
     category: "Subscriptions & Payments",
@@ -201,7 +201,7 @@ export default function FAQ() {
               Still have questions?
             </h3>
             <p className="text-slate-400 mb-6">
-              Can't find what you're looking for? Reach out to us at:
+              Can&apos;t find what you&apos;re looking for? Reach out to us at:
             </p>
             <a
               href="mailto:support@flyhome.ai"
