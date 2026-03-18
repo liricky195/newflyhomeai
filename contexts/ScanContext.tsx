@@ -8,6 +8,7 @@ import {
   useEffect,
 } from "react";
 import useSWR, { useSWRConfig } from "swr";
+import { getScanInterval } from "@/lib/tierIntervals";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,7 @@ const ScanContext = createContext<ScanContextValue>({
   nextScanAt: null,
   remaining: null,
   airportIata: null,
-  scanIntervalSeconds: 1800,
+  scanIntervalSeconds: getScanInterval("free"),
 });
 
 export function useScan(): ScanContextValue {
@@ -79,7 +80,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
   );
 
   const airportIata = statusData?.airportIata ?? null;
-  const scanIntervalSeconds = statusData?.scanIntervalSeconds ?? 1800;
+  const scanIntervalSeconds = statusData?.scanIntervalSeconds ?? getScanInterval("free");
   const nextScanAt = statusData?.nextScanAt ?? null;
 
   // ── Countdown timer driven by server-provided nextScanAt ──────────────────

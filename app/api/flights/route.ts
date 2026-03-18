@@ -6,10 +6,7 @@ import {
   getFlightsByAirport as getCachedFlights,
   getNextScanAt,
   purgeStaleFlights,
-  setUserNextScanAt,
-  getSubscriptionByUserId,
 } from "@/lib/db";
-import { getScanInterval } from "@/lib/tierIntervals";
 import { logRequest } from "@/lib/logger"; // HARDENED IN STEP 10
 import { corsHeaders } from "@/lib/cors"; // HARDENED IN STEP 10
 
@@ -66,19 +63,15 @@ export async function GET(request: NextRequest) {
     purgeStaleFlights(airport);
 
     const flights = getCachedFlights(airport, ["scheduled", "active"]);
+    // user_next_scan_at is owned exclusively by the monitor daemon (updateScanTimestamps)
+    // and the monitored-airports setup route. This route must never write it — doing so
+    // would reset the countdown on every page refresh and desync multiple tabs/devices.
     const nextScanAt = getNextScanAt(airport, session.user.id);
-
-    // Reset timer after showing flights based on user's subscription tier
-    const sub = getSubscriptionByUserId(session.user.id);
-    const scanInterval = sub?.scan_interval_seconds ?? getScanInterval("free");
-    const now = Math.floor(Date.now() / 1000);
-    const newNextScanAt = now + scanInterval;
-    setUserNextScanAt(session.user.id, newNextScanAt);
 
     const durationMs = Date.now() - startMs;
     logRequest("GET", "/api/flights", 200, durationMs, session.user.id);
     return NextResponse.json(
-      { flights, nextScanAt: newNextScanAt },
+      { flights, nextScanAt },
       { headers: corsHeaders(origin) }
     );
   } catch (err) {

@@ -1624,7 +1624,7 @@ export function updateScanTimestamps(airportIata: string, _intervalSeconds: numb
   // Update user_next_scan_at per user using their own subscription interval
   const users = conn
     .prepare<[string], { user_id: string; scan_interval_seconds: number }>(
-      `SELECT ma.user_id, COALESCE(s.scan_interval_seconds, 1800) AS scan_interval_seconds
+      `SELECT ma.user_id, COALESCE(s.scan_interval_seconds, ${getScanInterval("free")}) AS scan_interval_seconds
        FROM monitored_airports ma
        LEFT JOIN subscriptions s ON s.user_id = ma.user_id AND s.status = 'active'
        WHERE ma.airport_iata = ? AND ma.active = 1`

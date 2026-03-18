@@ -189,10 +189,11 @@ export default function FlightTable({
     `/api/flights?airport=${lockedAirport}`,
     fetcher,
     {
-      refreshInterval: 0, // Disable automatic polling
-      revalidateOnFocus: false,  // Tab switch must NOT trigger a refetch.
+      revalidateOnMount: false,    // Seeded from localStorage below; only scan-boundary mutate fetches.
+      refreshInterval: 0,          // No automatic polling — only scan-boundary globalMutate fires.
+      revalidateOnFocus: false,    // Tab switch must NOT trigger a refetch.
       revalidateOnReconnect: false, // Reconnect must NOT trigger a refetch.
-      dedupingInterval: 30_000,  // Prevents duplicate requests within 30 s.
+      dedupingInterval: 30_000,    // Prevents duplicate requests within 30 s.
     }
   );
 
@@ -210,6 +211,16 @@ export default function FlightTable({
       }
     } catch { /* ignore */ }
   }, [lockedAirport, mutate]);
+
+  // Persist the latest server response to localStorage so that:
+  // 1. The bootstrap effect (above) can detect a warm cache and skip the initial fetch.
+  // 2. Page refreshes instantly restore the last-known flight list without a network round-trip.
+  useEffect(() => {
+    if (!data) return;
+    try {
+      localStorage.setItem(`flights:${lockedAirport}`, JSON.stringify(data));
+    } catch { /* storage quota exceeded or private browsing */ }
+  }, [data, lockedAirport]);
 
   // Clock display — shows current time in the departure airport's local timezone.
   useEffect(() => {

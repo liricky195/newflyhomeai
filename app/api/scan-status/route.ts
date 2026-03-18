@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { initDb, getMonitoredAirport, getSubscriptionByUserId, setUserNextScanAt } from "@/lib/db";
+import { getScanInterval } from "@/lib/tierIntervals";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,7 +14,7 @@ export async function GET() {
     initDb();
     const airport = getMonitoredAirport(session.user.id);
     const sub = getSubscriptionByUserId(session.user.id);
-    const scanIntervalSeconds = sub?.scan_interval_seconds ?? 1800;
+    const scanIntervalSeconds = sub?.scan_interval_seconds ?? getScanInterval("free");
 
     // Prefer the user's own user_next_scan_at row (written by initNextScanAt or the
     // monitor daemon). Only fall back to synthesis when it has never been set.
@@ -24,31 +25,32 @@ export async function GET() {
     console.log(`[scan-status] user=${session.user.id.slice(0, 8)}... nextScanAt=${nextScanAt} now=${now} diff=${nextScanAt ? nextScanAt - now : 'null'} interval=${scanIntervalSeconds}`);
 
     if (nextScanAt === null && airport) {
-      // Use last_scanned_at (monitor) then last_scan_at (legacy) as the anchor,
-      // defaulting to now so the countdown begins immediately for brand-new users.
+      // Brand-new user (or just-reset airport): user_next_scan_at has never been
+      // written by the monitor yet.  Synthesise a bootstrap value from the stable
+      // DB anchor (last_scanned_at / last_scan_at) so the countdown starts
+      // immediately instead of showing "Scanning…" forever.  We write this once
+      // so that subsequent page refreshes read the stored value and honour elapsed
+      // time rather than restarting from the full interval.
       const anchor = airport.last_scanned_at ?? airport.last_scan_at ?? now;
       nextScanAt = anchor + scanIntervalSeconds;
-      // If the synthesised time is already past, push it to now + interval
-      // so the UI never shows a permanently-zero countdown.
       if (nextScanAt <= now) {
         nextScanAt = now + scanIntervalSeconds;
       }
-      // Save the synthesized timestamp so it persists across page refreshes.
-      // This ensures the countdown doesn't reset every time the user reloads.
-      console.log(`[scan-status] Synthesizing new timestamp: ${nextScanAt} (anchor=${anchor})`);
+      console.log(`[scan-status] Bootstrap: writing nextScanAt=${nextScanAt} (anchor=${anchor})`);
       setUserNextScanAt(session.user.id, nextScanAt);
     } else if (nextScanAt !== null && nextScanAt <= now) {
-      // Timestamp is in the past - re-synthesize based on user's own interval.
-      // The monitor updates timestamps airport-wide, but users have different
-      // subscription tiers with different intervals. Re-synthesizing prevents
-      // the "Scanning forever" bug when the monitor hasn't updated yet.
+      // The stored timestamp has expired — the monitor is either mid-scan or
+      // about to run.  Compute a best-effort estimate for the UI countdown but
+      // DO NOT write it to the DB.  All tabs and devices share the same
+      // last_scanned_at anchor from the DB, so they independently arrive at the
+      // same estimate without overwriting each other.  The monitor will write
+      // the authoritative next value via updateScanTimestamps once it finishes.
       const anchor = airport?.last_scanned_at ?? airport?.last_scan_at ?? now;
       nextScanAt = anchor + scanIntervalSeconds;
       if (nextScanAt <= now) {
         nextScanAt = now + scanIntervalSeconds;
       }
-      console.log(`[scan-status] Re-synthesizing past timestamp: ${nextScanAt} (anchor=${anchor})`);
-      setUserNextScanAt(session.user.id, nextScanAt);
+      console.log(`[scan-status] Expired — estimate (not persisted): ${nextScanAt} (anchor=${anchor})`);
     }
 
     return NextResponse.json({
